@@ -210,6 +210,7 @@ namespace Daemaged.IBNet
       return new DateTime();
     }
 
+
     public virtual TWSServerInfo DecodeServerInfo()
     {
       return new TWSServerInfo(DecodeInt());
@@ -227,23 +228,34 @@ namespace Daemaged.IBNet
 
     public virtual bool DecodeBool()
     {
-      return (DecodeInt() != 0);
+      return (DecodeInt() == 1);
     }
 
     public virtual double DecodeDouble()
     {
       var txt = DecodeString();
-      if (txt == null)
-        return 0;
-      txt = txt.Replace(".", NUMBER_DECIMAL_SEPARATOR);
-      txt = txt.Replace(",", NUMBER_DECIMAL_SEPARATOR);
-      return double.Parse(txt);
+      return txt == null ? 0 : double.Parse(txt);
+      //txt = txt.Replace(".", NUMBER_DECIMAL_SEPARATOR);
+      //txt = txt.Replace(",", NUMBER_DECIMAL_SEPARATOR);
     }
+    public double DecodeDoubleMax()
+    {
+      var txt = DecodeString();
+      return txt == null ? Double.MaxValue : double.Parse(txt);
+    }
+
 
     public virtual int DecodeInt()
     {
       var txt = DecodeString();
-      return txt != null ? Int32.Parse(txt) : 0;
+      return txt == null ? 0 : Int32.Parse(txt);
+    }
+
+    public int DecodeIntMax()
+    {
+      var txt = DecodeString();
+      return txt == null ? Int32.MaxValue : Int32.Parse(txt);
+      
     }
 
     public virtual long DecodeLong()

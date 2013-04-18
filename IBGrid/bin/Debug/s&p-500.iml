@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RecordedInstruments xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Options />
+  <Stocks />
+  <StockOptions />
+  <Indices>
+      <IBSimplefiedContract>
+      <Symbol>ESH8</Symbol>
+      <SecType>IND</SecType>
+      <Expiry>2007-09-20T00:00:00</Expiry>
+      <Strike>0</Strike>
+      <Multiplier>50</Multiplier>
+      <Exchange>PacmanReader/RadezHistory/CMEGlobexEquityFutures</Exchange>
+      <Currency>USD</Currency>
+    </IBSimplefiedContract>
+  </Indices>
+  <Futures>
+  </Futures>
+  <FutureOptions />
+</RecordedInstruments>

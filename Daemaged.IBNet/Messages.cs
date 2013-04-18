@@ -44,16 +44,6 @@ using System.Collections.Generic;
 
 namespace Daemaged.IBNet
 {
-  internal class IBOrderStatus
-  {
-    internal const string CANCELLED = "Cancelled";
-    internal const string FILLED = "Filled";
-    internal const string INACTIVE = "Inactive";
-    internal const string PENDING_CANCEL = "PendingCancel";
-    internal const string PENDING_SUBMIT = "PendingSubmit";
-    internal const string PRE_SUBMITTED = "PreSubmitted";
-    internal const string SUBMITTED = "Submitted";
-  }
 
   internal class IBBarSizeMap : Dictionary<int, int>
   {

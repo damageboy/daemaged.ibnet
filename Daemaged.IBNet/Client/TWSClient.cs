@@ -175,6 +175,12 @@ namespace Daemaged.IBNet.Client
             _twsTime = _enc.DecodeString();
           }
 
+          if (ServerInfo.Version < TWSServerInfo.SERVER_VERSION)
+          {
+            Disconnect();
+            throw new Exception("Server version is too low, please update the TWS server");
+          }
+
           // Send the client id
           if (ServerInfo.Version >= 3) {
             if (clientId == -1) {
@@ -768,7 +774,7 @@ namespace Daemaged.IBNet.Client
         });
     }
 
-    protected void OnOpenOrder(int orderId, IBOrder order, IBContract contract)
+    protected void OnOpenOrder(int orderId, IBOrder order, IBContract contract, OrderState orderState)
     {
       if (OpenOrder != null)
         OpenOrder(this, new TWSOpenOrderEventArgs(this) {
@@ -778,13 +784,13 @@ namespace Daemaged.IBNet.Client
         });
     }
 
-    protected void OnBondContractDetails(IBContractDetails contract)
+    protected void OnBondContractDetails(int reqId, IBContractDetails contract)
     {
       if (BondContractDetails != null)
         BondContractDetails(this, new TWSContractDetailsEventArgs(this) { ContractDetails = contract });
     }
 
-    protected void OnContractDetails(IBContractDetails contract)
+    protected void OnContractDetails(int reqId, IBContractDetails contract)
     {
       if (ContractDetails != null)
         ContractDetails(this, new TWSContractDetailsEventArgs(this) { ContractDetails = contract });
@@ -793,8 +799,7 @@ namespace Daemaged.IBNet.Client
     protected void OnManagedAccounts(string accountList) {}
     protected void OnReceiveFA(int faDataType, string xml) {}
 
-    protected void OnScannerData(int reqId, int rank, IBContractDetails contract,
-                                 string distance, string benchmark, string projection)
+    protected void OnScannerData(int reqId, int rank, IBContractDetails contract, string s, string distance, string benchmark, string projection)
     {
       if (ScannerData == null)
         return;
@@ -834,7 +839,7 @@ namespace Daemaged.IBNet.Client
       });
     }
 
-    protected void OnExecDetails(int orderId, IBContract contract, IBExecution execution)
+    protected void OnExecutionDetails(int orderId, IBContract contract, IBExecution execution)
     {
       if (ExecDetails != null)
         ExecDetails(this, new TWSExecDetailsEventArgs(this) {
@@ -913,7 +918,13 @@ namespace Daemaged.IBNet.Client
     {
     }
 
+    private void OnCommissionReport(CommissionReport commissionReport)
+    {
+    }
 
+    private void OnMarketDataType(int reqId, int marketDataType)
+    {
+    }
     #endregion
 
     #region Synchronized Request Wrappers
@@ -937,10 +948,10 @@ namespace Daemaged.IBNet.Client
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
-      var tickType = (IBTickType) _enc.DecodeInt();
+      var tickType = _enc.DecodeEnum<IBTickType>();
       var price = _enc.DecodeDouble();
       var size = (version >= 2) ? _enc.DecodeInt() : 0;
-      var canAutoExecute = (version >= 3) ? _enc.DecodeInt() : 0;
+      var canAutoExecute = (version >= 3) ? _enc.DecodeInt() : 0;      
       OnTickPrice(reqId, tickType, price, size, canAutoExecute);
 
       // Contorary to standard IB socket implementation
@@ -998,23 +1009,25 @@ namespace Daemaged.IBNet.Client
       
 
       // read contract fields
-      var contract = new IBContract {
-          Symbol = _enc.DecodeString(),
-          SecurityType = _enc.DecodeEnum<IBSecurityType>(),
-          Expiry = DateTime.ParseExact(_enc.DecodeString(), IB_EXPIRY_DATE_FORMAT, CultureInfo.InvariantCulture),
-          Strike = _enc.DecodeDouble(),
-          Right = _enc.DecodeString(),
-          Exchange = _enc.DecodeString(),
-          Currency = _enc.DecodeString(),
-          LocalSymbol = (version >= 2) ? _enc.DecodeString() : null
-        };
+      var contract = new IBContract();
+      if (version >= 17)
+        contract.ContractId = _enc.DecodeInt();
+      contract.Symbol = _enc.DecodeString();
+      contract.SecurityType = _enc.DecodeEnum<IBSecurityType>();
+      contract.Expiry = DateTime.ParseExact(_enc.DecodeString(), IB_EXPIRY_DATE_FORMAT, CultureInfo.InvariantCulture);
+      contract.Strike = _enc.DecodeDouble();
+      contract.Right = _enc.DecodeString();
+      contract.Exchange = _enc.DecodeString();
+      contract.Currency = _enc.DecodeString();
+      contract.LocalSymbol = (version >= 2) ? _enc.DecodeString() : null;
 
       // read other order fields
       order.Action = _enc.DecodeEnum<IBAction>();
       order.TotalQuantity = _enc.DecodeInt();
       order.OrderType = _enc.DecodeEnum<IBOrderType>();
-      order.LimitPrice = _enc.DecodeDouble();
-      order.AuxPrice = _enc.DecodeDouble();
+      order.LimitPrice = version < 29 ? _enc.DecodeDouble() : _enc.DecodeDoubleMax();
+      order.AuxPrice = version < 30 ? _enc.DecodeDouble() : _enc.DecodeDoubleMax();
+
       order.Tif = _enc.DecodeEnum<IBTimeInForce>();
       order.OcaGroup = _enc.DecodeString();
       order.Account = _enc.DecodeString();
@@ -1027,8 +1040,12 @@ namespace Daemaged.IBNet.Client
 
       if (version >= 4) {
         order.PermId = _enc.DecodeInt();
-        order.IgnoreRth = _enc.DecodeInt() == 1;
-        order.Hidden = _enc.DecodeInt() == 1;
+        if (version < 18)
+          order.IgnoreRth = _enc.DecodeInt() == 1;
+        else
+          order.OutsideRth = _enc.DecodeInt() == 1;
+       
+        order.Hidden = _enc.DecodeBool();
         order.DiscretionaryAmt = _enc.DecodeDouble();
       }
 
@@ -1054,6 +1071,11 @@ namespace Daemaged.IBNet.Client
         order.SettlingFirm = _enc.DecodeString();
         order.ShortSaleSlot = _enc.DecodeInt();
         order.DesignatedLocation = _enc.DecodeString();
+        if (ServerInfo.Version == 51)
+          _enc.DecodeInt(); // exemptCode        
+        else if (version >= 23)
+          order.ExemptCode = _enc.DecodeInt();
+
         order.AuctionStrategy = _enc.DecodeInt();
         order.StartingPrice = _enc.DecodeDouble();
         order.StockRefPrice = _enc.DecodeDouble();
@@ -1061,7 +1083,8 @@ namespace Daemaged.IBNet.Client
         order.StockRangeLower = _enc.DecodeDouble();
         order.StockRangeUpper = _enc.DecodeDouble();
         order.DisplaySize = _enc.DecodeInt();
-        order.RthOnly = _enc.DecodeBool();
+        if (version < 18)
+          order.RthOnly = _enc.DecodeBool();
         order.BlockOrder = _enc.DecodeBool();
         order.SweepToFill = _enc.DecodeBool();
         order.AllOrNone = _enc.DecodeBool();
@@ -1081,13 +1104,28 @@ namespace Daemaged.IBNet.Client
         order.Volatility = _enc.DecodeDouble();
         order.VolatilityType = _enc.DecodeInt();
         if (version == 11) {
-          int receivedInt = _enc.DecodeInt();
+          var receivedInt = _enc.DecodeInt();
           order.DeltaNeutralOrderType = ((receivedInt == 0) ? IBOrderType.None : IBOrderType.Market);
         }
         else {
           // version 12 and up
+
           order.DeltaNeutralOrderType = _enc.DecodeEnum<IBOrderType>();
-          order.DeltaNeutralAuxPrice = _enc.DecodeDouble();
+          order.DeltaNeutralAuxPrice = _enc.DecodeDoubleMax();
+
+          if (version >= 27 && order.DeltaNeutralOrderType != IBOrderType.Empty) {
+            order.DeltaNeutralConId = _enc.DecodeInt();
+            order.DeltaNeutralSettlingFirm = _enc.DecodeString();
+            order.DeltaNeutralClearingAccount = _enc.DecodeString();
+            order.DeltaNeutralClearingIntent = _enc.DecodeString();
+          }
+
+          if (version >= 31 && order.DeltaNeutralOrderType != IBOrderType.Empty) {
+            order.DeltaNeutralOpenClose = _enc.DecodeString();
+            order.DeltaNeutralShortSale = _enc.DecodeBool();
+            order.DeltaNeutralShortSaleSlot = _enc.DecodeInt();
+            order.DeltaNeutralDesignatedLocation = _enc.DecodeString();
+          }
         }
         order.ContinuousUpdate = _enc.DecodeInt();
         if (ServerInfo.Version == 26) {
@@ -1098,15 +1136,143 @@ namespace Daemaged.IBNet.Client
       }
 
       if (version >= 13)
-        order.TrailStopPrice = _enc.DecodeDouble();
+        order.TrailStopPrice = _enc.DecodeDoubleMax();
 
+      if (version >= 30)
+        order.TrailingPercent = _enc.DecodeDoubleMax();
+      
       if (version >= 14) {
         order.BasisPoints = _enc.DecodeDouble();
         order.BasisPointsType = _enc.DecodeInt();
-        contract.ComboLegsDescrip = _enc.DecodeString();
+        contract.ComboLegsDescription = _enc.DecodeString();
       }
 
-      OnOpenOrder(order.OrderId, order, contract);
+      if (version >= 29) {
+        var comboLegsCount = _enc.DecodeInt();
+        if (comboLegsCount > 0) {
+          contract.ComboLegs = new List<IBComboLeg>(comboLegsCount);
+          for (var i = 0; i < comboLegsCount; ++i)
+            contract.ComboLegs.Add(new IBComboLeg {
+              ConId = _enc.DecodeInt(),
+              Ratio = _enc.DecodeInt(),
+              Action = _enc.DecodeEnum<IBAction>(),
+              Exchange = _enc.DecodeString(),
+              OpenClose = _enc.DecodeEnum<IBComboOpenClose>(),
+              ShortSaleSlot = _enc.DecodeEnum<IBShortSaleSlot>(),
+              DesignatedLocation = _enc.DecodeString(),
+              ExemptCode = _enc.DecodeInt(),
+            });         
+        }
+
+        var orderComboLegsCount = _enc.DecodeInt();
+        if (orderComboLegsCount > 0) {
+          order.OrderComboLegs = new List<IBOrderComboLeg>(orderComboLegsCount);
+          for (var i = 0; i < orderComboLegsCount; ++i)
+            order.OrderComboLegs.Add(new IBOrderComboLeg { Price = _enc.DecodeDoubleMax() });            
+        }
+      }
+
+      if (version >= 26) {
+        var smartComboRoutingParamsCount = _enc.DecodeInt();
+        if (smartComboRoutingParamsCount > 0) {
+          order.SmartComboRoutingParams = new List<IBTagValue>(smartComboRoutingParamsCount);
+          for (var i = 0; i < smartComboRoutingParamsCount; ++i)
+            order.SmartComboRoutingParams.Add(new IBTagValue {
+                Tag = _enc.DecodeString(), 
+                Value = _enc.DecodeString()
+              });
+        }
+      }
+
+      if (version >= 15)
+      {
+        if (version >= 20) {
+          order.ScaleInitLevelSize = _enc.DecodeIntMax();
+          order.ScaleSubsLevelSize = _enc.DecodeIntMax();
+        }
+        else {
+          /* int notSuppScaleNumComponents = */
+          _enc.DecodeIntMax();
+          order.ScaleInitLevelSize = _enc.DecodeIntMax();
+        }
+        order.ScalePriceIncrement = _enc.DecodeDoubleMax();
+      }
+
+      if (version >= 28 && order.ScalePriceIncrement > 0.0 && order.ScalePriceIncrement != Double.MaxValue) {
+        order.ScalePriceAdjustValue = _enc.DecodeDoubleMax();
+        order.ScalePriceAdjustInterval = _enc.DecodeIntMax();
+        order.ScaleProfitOffset = _enc.DecodeDoubleMax();
+        order.ScaleAutoReset = _enc.DecodeBool();
+        order.ScaleInitPosition = _enc.DecodeIntMax();
+        order.ScaleInitFillQty = _enc.DecodeIntMax();
+        order.ScaleRandomPercent = _enc.DecodeBool();
+      }
+
+      if (version >= 24)
+      {
+        order.HedgeType = _enc.DecodeString();
+        if (!String.IsNullOrEmpty(order.HedgeType))
+          order.HedgeParam = _enc.DecodeString();
+      }
+
+      if (version >= 25)
+        order.OptOutSmartRouting = _enc.DecodeBool();
+
+      if (version >= 19) {
+        order.ClearingAccount = _enc.DecodeString();
+        order.ClearingIntent = _enc.DecodeString();
+      }
+
+      if (version >= 22)
+        order.NotHeld = _enc.DecodeBool();
+
+      if (version >= 20)
+      {
+        if (_enc.DecodeBool()) {
+          contract.UnderlyinhComponent = new IBUnderlyinhComponent {
+            ContractId = _enc.DecodeInt(),
+            Delta = _enc.DecodeDouble(),
+            Price = _enc.DecodeDouble()
+          };
+          
+        }
+      }
+
+      if (version >= 21)
+      {
+        order.AlgoStrategy = _enc.DecodeString();
+        if (!String.IsNullOrEmpty(order.AlgoStrategy))
+        {          
+          var algoParamsCount = _enc.DecodeInt();
+          if (algoParamsCount > 0) {
+            order.AlgoParams = new List<IBTagValue>(algoParamsCount);
+            for (var i = 0; i < algoParamsCount; ++i) 
+              order.AlgoParams.Add(new IBTagValue {
+                Tag = _enc.DecodeString(),
+                Value = _enc.DecodeString(),
+              });              
+          }
+        }
+      }
+
+      var orderState = new OrderState();
+
+      if (version >= 16) {
+
+        order.WhatIf = _enc.DecodeBool();
+
+        orderState.Status = _enc.DecodeEnum<IBOrderStatus>();
+        orderState.InitMargin = _enc.DecodeString();
+        orderState.MaintMargin = _enc.DecodeString();
+        orderState.EquityWithLoan = _enc.DecodeString();
+        orderState.Commission = _enc.DecodeDoubleMax();
+        orderState.MinCommission = _enc.DecodeDoubleMax();
+        orderState.MaxCommission = _enc.DecodeDoubleMax();
+        orderState.CommissionCurrency = _enc.DecodeString();
+        orderState.WarningText = _enc.DecodeString();
+      }
+
+      OnOpenOrder(order.OrderId, order, contract, orderState);
     }
 
     private void ProcessAccountValue()
@@ -1169,8 +1335,11 @@ namespace Daemaged.IBNet.Client
     private void ProcessContractData()
     {
       var version = _enc.DecodeInt();
-      var contractDetails = new IBContractDetails
-        {
+      var reqId = -1;
+      if (version >= 3)
+        reqId = _enc.DecodeInt();
+      
+      var contractDetails = new IBContractDetails {
           Summary = {
               Symbol = _enc.DecodeString(),
               SecurityType = _enc.DecodeEnum<IBSecurityType>(),
@@ -1191,23 +1360,61 @@ namespace Daemaged.IBNet.Client
         };
       if (version >= 2)
         contractDetails.PriceMagnifier = _enc.DecodeInt();
-      OnContractDetails(contractDetails);
+
+      if (version >= 4)
+        contractDetails.UnderlyingContractId = _enc.DecodeInt();
+
+      if (version >= 5) {
+        contractDetails.LongName = _enc.DecodeString();
+        contractDetails.Summary.PrimaryExch = _enc.DecodeString();
+      }
+      if (version >= 6) {
+        contractDetails.ContractMonth = _enc.DecodeString();
+        contractDetails.Industry = _enc.DecodeString();
+        contractDetails.Category = _enc.DecodeString();
+        contractDetails.Subcategory = _enc.DecodeString();
+        contractDetails.TimeZoneId = _enc.DecodeString();
+        contractDetails.TradingHours = _enc.DecodeString();
+        contractDetails.LiquidHours = _enc.DecodeString();
+      }
+      if (version >= 8) {
+        contractDetails.EvRule = _enc.DecodeString();
+        contractDetails.EvMultiplier = _enc.DecodeDouble();
+      }
+      if (version >= 7) {
+        var secIdListCount = _enc.DecodeInt();
+        if (secIdListCount > 0) {
+          contractDetails.SecIdList = new List<IBTagValue>(secIdListCount);
+          for (var i = 0; i < secIdListCount; ++i)
+            contractDetails.SecIdList.Add(new IBTagValue { Tag = _enc.DecodeString(), Value = _enc.DecodeString() });            
+        }
+      }
+      OnContractDetails(reqId, contractDetails);
     }
 
     private void ProcessExecutionData()
     {
       var version = _enc.DecodeInt();
+      var reqId = -1;
+      if (version >= 7)
+        reqId = _enc.DecodeInt();
+
       var orderId = _enc.DecodeInt();
-      var contract = new IBContract {
-        Symbol = _enc.DecodeString(),
-        SecurityType = _enc.DecodeEnum<IBSecurityType>(),
-        Expiry = DateTime.ParseExact(_enc.DecodeString(), IB_EXPIRY_DATE_FORMAT, CultureInfo.InvariantCulture),
-        Strike = _enc.DecodeDouble(),
-        Right = _enc.DecodeString(),
-        Exchange = _enc.DecodeString(),
-        Currency = _enc.DecodeString(),
-        LocalSymbol = _enc.DecodeString()
-      };
+      var contract = new IBContract();
+      if (version >= 5)
+        contract.ContractId = _enc.DecodeInt();
+
+      contract.Symbol = _enc.DecodeString();
+      contract.SecurityType = _enc.DecodeEnum<IBSecurityType>();
+      contract.Expiry = DateTime.ParseExact(_enc.DecodeString(), IB_EXPIRY_DATE_FORMAT, CultureInfo.InvariantCulture);
+      contract.Strike = _enc.DecodeDouble();
+      contract.Right = _enc.DecodeString();
+      if (version >= 9)
+        contract.Multiplier = _enc.DecodeString();
+
+      contract.Exchange = _enc.DecodeString();
+      contract.Currency = _enc.DecodeString();
+      contract.LocalSymbol = _enc.DecodeString();
       var execution = new IBExecution { 
         OrderID = orderId,
         ExecID = _enc.DecodeString(),
@@ -1219,13 +1426,24 @@ namespace Daemaged.IBNet.Client
         Price = _enc.DecodeDouble()
       };
       if (version >= 2)
-        execution.PermID = _enc.DecodeInt();
+        execution.PermId = _enc.DecodeInt();
       if (version >= 3)
-        execution.ClientID = _enc.DecodeInt();
+        execution.ClientId = _enc.DecodeInt();
       if (version >= 4)
         execution.Liquidation = _enc.DecodeInt();
+      if (version >= 6) {
+        execution.CumQty = _enc.DecodeInt();
+        execution.AveragePrice = _enc.DecodeDouble();
+      }
+      if (version >= 8) {
+        execution.OrderRef = _enc.DecodeString();
+      }
+      if (version >= 9) {
+        execution.EvRule = _enc.DecodeString();
+        execution.EvMultiplier = _enc.DecodeDouble();
+      }
 
-      OnExecDetails(orderId, contract, execution);
+      OnExecutionDetails(reqId, contract, execution);
     }
 
     private void ProcessMarketDepth()
@@ -1313,30 +1531,36 @@ namespace Daemaged.IBNet.Client
 
     private void ProcessBondContractData()
     {
-      int version = _enc.DecodeInt();
-      var contract = new IBContractDetails();
+      var version = _enc.DecodeInt();
+      var reqId = -1;
+      if (version >= 3)
+        reqId = _enc.DecodeInt();
 
-      contract.Summary.Symbol = _enc.DecodeString();
-      contract.Summary.SecurityType = _enc.DecodeEnum<IBSecurityType>();
-      contract.Summary.Cusip = _enc.DecodeString();
-      contract.Summary.Coupon = _enc.DecodeDouble();
-      contract.Summary.Maturity = _enc.DecodeString();
-      contract.Summary.IssueDate = _enc.DecodeString();
-      contract.Summary.Ratings = _enc.DecodeString();
-      contract.Summary.BondType = _enc.DecodeString();
-      contract.Summary.CouponType = _enc.DecodeString();
-      contract.Summary.Convertible = _enc.DecodeBool();
-      contract.Summary.Callable = _enc.DecodeBool();
-      contract.Summary.Putable = _enc.DecodeBool();
-      contract.Summary.DescAppend = _enc.DecodeString();
-      contract.Summary.Exchange = _enc.DecodeString();
-      contract.Summary.Currency = _enc.DecodeString();
-      contract.MarketName = _enc.DecodeString();
-      contract.TradingClass = _enc.DecodeString();
-      contract.Conid = _enc.DecodeInt();
-      contract.MinTick = _enc.DecodeDouble();
-      contract.OrderTypes = _enc.DecodeString();
-      contract.ValidExchanges = _enc.DecodeString();
+      var contract = new IBContractDetails {
+        Summary = {
+          Symbol = _enc.DecodeString(),
+          SecurityType = _enc.DecodeEnum<IBSecurityType>(),
+          Cusip = _enc.DecodeString(),
+          Coupon = _enc.DecodeDouble(),
+          Maturity = _enc.DecodeString(),
+          IssueDate = _enc.DecodeString(),
+          Ratings = _enc.DecodeString(),
+          BondType = _enc.DecodeString(),
+          CouponType = _enc.DecodeString(),
+          Convertible = _enc.DecodeBool(),
+          Callable = _enc.DecodeBool(),
+          Putable = _enc.DecodeBool(),
+          DescAppend = _enc.DecodeString(),
+          Exchange = _enc.DecodeString(),
+          Currency = _enc.DecodeString()
+        },
+        MarketName = _enc.DecodeString(),
+        TradingClass = _enc.DecodeString(),
+        Conid = _enc.DecodeInt(),
+        MinTick = _enc.DecodeDouble(),
+        OrderTypes = _enc.DecodeString(),
+        ValidExchanges = _enc.DecodeString()
+      };
 
       if (version >= 2) {
         contract.Summary.NextOptionDate = _enc.DecodeString();
@@ -1344,7 +1568,26 @@ namespace Daemaged.IBNet.Client
         contract.Summary.NextOptionPartial = _enc.DecodeBool();
         contract.Summary.Notes = _enc.DecodeString();
       }
-      OnBondContractDetails(contract);
+
+      if (version >= 4)
+        contract.LongName = _enc.DecodeString();
+
+      if (version >= 6) {
+        contract.EvRule = _enc.DecodeString();
+        contract.EvMultiplier = _enc.DecodeDouble();
+      }
+      if (version >= 5) {
+        var secIdListCount = _enc.DecodeInt();
+        if (secIdListCount > 0) {
+          contract.SecIdList = new List<IBTagValue>(secIdListCount);
+          for (var i = 0; i < secIdListCount; ++i)
+            contract.SecIdList.Add(new IBTagValue {
+                Tag = _enc.DecodeString(),
+                Value = _enc.DecodeString(),
+              });
+          }        
+      }
+      OnBondContractDetails(reqId, contract);
     }
 
     private void ProcessScannerParameters()
@@ -1360,8 +1603,11 @@ namespace Daemaged.IBNet.Client
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
       var numberOfElements = _enc.DecodeInt();
-      for (int i = 0; i < numberOfElements; i++) {
+      for (var i = 0; i < numberOfElements; i++) {
         var rank = _enc.DecodeInt();
+        if (version >= 3)
+          contract.Summary.ContractId = _enc.DecodeInt();
+
         contract.Summary.Symbol = _enc.DecodeString();
         contract.Summary.SecurityType = _enc.DecodeEnum<IBSecurityType>();
         contract.Summary.Expiry = DateTime.ParseExact(_enc.DecodeString(), IB_EXPIRY_DATE_FORMAT,
@@ -1376,7 +1622,10 @@ namespace Daemaged.IBNet.Client
         var distance = _enc.DecodeString();
         var benchmark = _enc.DecodeString();
         var projection = _enc.DecodeString();
-        OnScannerData(reqId, rank, contract, distance, benchmark, projection);
+        string legStr = null;
+        if (version >= 2)
+          legStr = _enc.DecodeString();
+        OnScannerData(reqId, rank, contract, distance, benchmark, projection, legStr);
       }
     }
 
@@ -1589,10 +1838,41 @@ namespace Daemaged.IBNet.Client
         case ClientMessage.ExecutionDataEnd:       ProcessExecutionDataEnd();       break;
         case ClientMessage.DeltaNuetralValidation: ProcessDeltaNeutralValidation(); break;
         case ClientMessage.TickSnapshotEnd:        ProcessTickSnapshotEnd();        break;
+        case ClientMessage.MarketDataType:         ProcessMarketDataType();         break;
+        case ClientMessage.CommissionReport:       ProcessCommissionReport();       break;;
+        default:
+          return false;
       }
 
       // All is well
       return true;
+    }
+
+    private void ProcessCommissionReport()
+    {
+      var version = _enc.DecodeInt();
+
+      var commissionReport = new CommissionReport {
+          ExecId = _enc.DecodeString(),
+          Commission = _enc.DecodeDouble(),
+          Currency = _enc.DecodeString(),
+          RealizedPnl = _enc.DecodeDouble(),
+          Yield = _enc.DecodeDouble(),
+          YieldRedemptionDate = _enc.DecodeInt()
+        };
+      OnCommissionReport(commissionReport);
+
+    }
+
+
+    private void ProcessMarketDataType()
+    {
+      var version = _enc.DecodeInt();
+      var reqId = _enc.DecodeInt();
+      var marketDataType = _enc.DecodeInt();
+
+      OnMarketDataType(reqId, marketDataType);
+
     }
 
 
@@ -2374,4 +2654,6 @@ namespace Daemaged.IBNet.Client
     public event EventHandler<TWSRealtimeBarEventArgs> RealtimeBar;
     
   }
+
+
 }

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Daemaged.IBNet;
 using Daemaged.IBNet.Client;
 using SourceGrid;

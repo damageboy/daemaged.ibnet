@@ -59,8 +59,11 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="SourceGrid, Version=4.8.2682.28723, Culture=neutral, PublicKeyToken=df6f5e538749e85d, processorArchitecture=MSIL">
+    <Reference Include="PostSharp, Version=2.1.0.0, Culture=neutral, PublicKeyToken=b13fd38b8f9c99d7, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\deplibs\PostSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="SourceGrid">
       <HintPath>..\deplibs\SourceGrid.dll</HintPath>
     </Reference>
     <Reference Include="System" />

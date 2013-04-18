@@ -49,9 +49,11 @@ namespace Daemaged.IBNet
     bool DecodeBool();    
     TWSClientInfo DecodeClientInfo();
     double DecodeDouble();
+    double DecodeDoubleMax();
     TWSServerInfo DecodeServerInfo();
     TWSClientId DecodeClientId();
     int DecodeInt();
+    int DecodeIntMax();
     long DecodeLong();
         
     DateTime DecodeExpiryDate();

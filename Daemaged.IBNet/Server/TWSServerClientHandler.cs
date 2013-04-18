@@ -259,7 +259,7 @@ namespace Daemaged.IBNet.Server
                                       };
 
         if (ServerInfo.Version >= 15)
-          contract.Multiplier = _enc.DecodeInt();
+          contract.Multiplier = _enc.DecodeString();
         contract.Exchange = _enc.DecodeString();
         contract.Currency = _enc.DecodeString();
         contract.LocalSymbol = _enc.DecodeString();
@@ -304,7 +304,7 @@ namespace Daemaged.IBNet.Server
                                         Right = _enc.DecodeString()
                                       };
         if (ServerInfo.Version >= 15)
-          contract.Multiplier = _enc.DecodeInt();
+          contract.Multiplier = _enc.DecodeString();
         contract.Exchange = _enc.DecodeString();
         if (ServerInfo.Version >= 14)
           contract.PrimaryExch = _enc.DecodeString();
@@ -358,7 +358,7 @@ namespace Daemaged.IBNet.Server
                                         Right = _enc.DecodeString()
                                       };
         if (ServerInfo.Version >= 15) {
-          contract.Multiplier = _enc.DecodeInt();
+          contract.Multiplier = _enc.DecodeString();
         }
         contract.Exchange = _enc.DecodeString();
         contract.Currency = _enc.DecodeString();
