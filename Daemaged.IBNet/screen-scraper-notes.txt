@@ -1,0 +1,8 @@
+Description - /html/body/table/tbody/tr[2]/td[2]
+TWS Name - /html/body/table/tbody/tr[3]/td[2]
+SecType - /html/body/table/tbody/tr[4]/td[2]
+Currency - /html/body/table/tbody/tr[5]/td[2]
+Exchange - /html/body/table/tbody/tr[10]/td[2]/a
+Expiration Date - /html/body/table/tbody/tr[13]/td[2]
+Option Strike -  /html/body/table/tbody/tr[15]/td[2]
+Price Increment - /html/body/table[2]/tbody/tr[4]/td[2]/table/tbody/tr[2]/td[2]

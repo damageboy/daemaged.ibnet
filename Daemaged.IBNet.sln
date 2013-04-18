@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Daemaged.IBNet", "Daemaged.IBNet\Daemaged.IBNet.csproj", "{E321D27F-0A9F-4FFE-A55D-FD59DE33EC9E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IBGrid", "IBGrid\IBGrid.csproj", "{E737E95A-A21C-499D-8D2C-5BC3A382EB39}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IBServer", "IBServer\IBServer.csproj", "{FA003657-A9CE-4DDA-BB98-07854490ADFF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E321D27F-0A9F-4FFE-A55D-FD59DE33EC9E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E321D27F-0A9F-4FFE-A55D-FD59DE33EC9E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E321D27F-0A9F-4FFE-A55D-FD59DE33EC9E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E321D27F-0A9F-4FFE-A55D-FD59DE33EC9E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E737E95A-A21C-499D-8D2C-5BC3A382EB39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E737E95A-A21C-499D-8D2C-5BC3A382EB39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E737E95A-A21C-499D-8D2C-5BC3A382EB39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E737E95A-A21C-499D-8D2C-5BC3A382EB39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA003657-A9CE-4DDA-BB98-07854490ADFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA003657-A9CE-4DDA-BB98-07854490ADFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA003657-A9CE-4DDA-BB98-07854490ADFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA003657-A9CE-4DDA-BB98-07854490ADFF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

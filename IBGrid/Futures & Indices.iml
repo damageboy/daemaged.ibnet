@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RecordedInstruments xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Options />
+  <Stocks />
+  <StockOptions />
+  <Indices>
+    <IBSimplefiedContract>
+      <Symbol>ES</Symbol>
+      <SecType>IND</SecType>
+      <Expiry>0001-01-01T00:00:00</Expiry>
+      <Strike>0</Strike>
+      <Multiplier>0</Multiplier>
+      <Exchange>GLOBEX</Exchange>
+      <Currency>USD</Currency>
+    </IBSimplefiedContract>
+    <IBSimplefiedContract>
+      <Symbol>DAX</Symbol>
+      <SecType>IND</SecType>
+      <Expiry>0001-01-01T00:00:00</Expiry>
+      <Strike>0</Strike>
+      <Multiplier>0</Multiplier>
+      <Exchange>DTB</Exchange>
+      <Currency>EUR</Currency>
+    </IBSimplefiedContract>
+  </Indices>
+  <Futures>
+    <IBSimplefiedContract>
+      <Symbol>ES</Symbol>
+      <SecType>FUT</SecType>
+      <Expiry>2007-12-20T00:00:00</Expiry>
+      <Strike>0</Strike>
+      <Multiplier>50</Multiplier>
+      <Exchange>GLOBEX</Exchange>
+      <Currency>USD</Currency>
+    </IBSimplefiedContract>
+    <IBSimplefiedContract>
+      <Symbol>DAX</Symbol>
+      <SecType>FUT</SecType>
+      <Expiry>2007-09-21T00:00:00</Expiry>
+      <Strike>0</Strike>
+      <Multiplier>25</Multiplier>
+      <Exchange>DTB</Exchange>
+      <Currency>EUR</Currency>
+    </IBSimplefiedContract>
+  </Futures>
+  <FutureOptions />
+</RecordedInstruments>
