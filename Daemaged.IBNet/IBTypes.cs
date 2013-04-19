@@ -128,39 +128,7 @@ namespace Daemaged.IBNet
 
 
     private const int CLIENT_VERSION = 60;
-    internal const int MIN_SERVER_VER_REAL_TIME_BARS = 34;
-  	internal const int MIN_SERVER_VER_SCALE_ORDERS = 35;
-	  internal const int MIN_SERVER_VER_SNAPSHOT_MKT_DATA = 35;
-	  internal const int MIN_SERVER_VER_SSHORT_COMBO_LEGS = 35;
-	  internal const int MIN_SERVER_VER_WHAT_IF_ORDERS = 36;
-	  internal const int MIN_SERVER_VER_CONTRACT_CONID = 37;
-	  internal const int MIN_SERVER_VER_PTA_ORDERS = 39;
-	  internal const int MIN_SERVER_VER_FUNDAMENTAL_DATA = 40;
-	  internal const int MIN_SERVER_VER_UNDER_COMP = 40;
-	  internal const int MIN_SERVER_VER_CONTRACT_DATA_CHAIN = 40;
-	  internal const int MIN_SERVER_VER_SCALE_ORDERS2 = 40;
-	  internal const int MIN_SERVER_VER_ALGO_ORDERS = 41;
-	  internal const int MIN_SERVER_VER_EXECUTION_DATA_CHAIN = 42;
-	  internal const int MIN_SERVER_VER_NOT_HELD = 44;
-	  internal const int MIN_SERVER_VER_SEC_ID_TYPE = 45;
-	  internal const int MIN_SERVER_VER_PLACE_ORDER_CONID = 46;
-	  internal const int MIN_SERVER_VER_REQ_MKT_DATA_CONID = 47;
-    internal const int MIN_SERVER_VER_REQ_CALC_IMPLIED_VOLAT = 49;
-    internal const int MIN_SERVER_VER_REQ_CALC_OPTION_PRICE = 50;
-    internal const int MIN_SERVER_VER_CANCEL_CALC_IMPLIED_VOLAT = 50;
-    internal const int MIN_SERVER_VER_CANCEL_CALC_OPTION_PRICE = 50;
-    internal const int MIN_SERVER_VER_SSHORTX_OLD = 51;
-    internal const int MIN_SERVER_VER_SSHORTX = 52;
-    internal const int MIN_SERVER_VER_REQ_GLOBAL_CANCEL = 53;
-    internal const int MIN_SERVER_VER_HEDGE_ORDERS = 54;
-    internal const int MIN_SERVER_VER_REQ_MARKET_DATA_TYPE = 55;
-    internal const int MIN_SERVER_VER_OPT_OUT_SMART_ROUTING = 56;
-    internal const int MIN_SERVER_VER_SMART_COMBO_ROUTING_PARAMS = 57;
-    internal const int MIN_SERVER_VER_DELTA_NEUTRAL_CONID = 58;
-    internal const int MIN_SERVER_VER_SCALE_ORDERS3 = 60;
-    internal const int MIN_SERVER_VER_ORDER_COMBO_LEGS_PRICE = 61;
-    internal const int MIN_SERVER_VER_TRAILING_PERCENT = 62;
-    internal const int MIN_SERVER_VER_DELTA_NEUTRAL_OPEN_CLOSE = 66;
+
 
 
     public TWSClientInfo(int version)
@@ -178,6 +146,39 @@ namespace Daemaged.IBNet
 
   public class TWSServerInfo
   {
+    internal const int MIN_SERVER_VER_REAL_TIME_BARS = 34;
+    internal const int MIN_SERVER_VER_SCALE_ORDERS = 35;
+    internal const int MIN_SERVER_VER_SNAPSHOT_MKT_DATA = 35;
+    internal const int MIN_SERVER_VER_SSHORT_COMBO_LEGS = 35;
+    internal const int MIN_SERVER_VER_WHAT_IF_ORDERS = 36;
+    internal const int MIN_SERVER_VER_CONTRACT_CONID = 37;
+    internal const int MIN_SERVER_VER_PTA_ORDERS = 39;
+    internal const int MIN_SERVER_VER_FUNDAMENTAL_DATA = 40;
+    internal const int MIN_SERVER_VER_UNDER_COMP = 40;
+    internal const int MIN_SERVER_VER_CONTRACT_DATA_CHAIN = 40;
+    internal const int MIN_SERVER_VER_SCALE_ORDERS2 = 40;
+    internal const int MIN_SERVER_VER_ALGO_ORDERS = 41;
+    internal const int MIN_SERVER_VER_EXECUTION_DATA_CHAIN = 42;
+    internal const int MIN_SERVER_VER_NOT_HELD = 44;
+    internal const int MIN_SERVER_VER_SEC_ID_TYPE = 45;
+    internal const int MIN_SERVER_VER_PLACE_ORDER_CONID = 46;
+    internal const int MIN_SERVER_VER_REQ_MKT_DATA_CONID = 47;
+    internal const int MIN_SERVER_VER_REQ_CALC_IMPLIED_VOLAT = 49;
+    internal const int MIN_SERVER_VER_REQ_CALC_OPTION_PRICE = 50;
+    internal const int MIN_SERVER_VER_CANCEL_CALC_IMPLIED_VOLAT = 50;
+    internal const int MIN_SERVER_VER_CANCEL_CALC_OPTION_PRICE = 50;
+    internal const int MIN_SERVER_VER_SSHORTX_OLD = 51;
+    internal const int MIN_SERVER_VER_SSHORTX = 52;
+    internal const int MIN_SERVER_VER_REQ_GLOBAL_CANCEL = 53;
+    internal const int MIN_SERVER_VER_HEDGE_ORDERS = 54;
+    internal const int MIN_SERVER_VER_REQ_MARKET_DATA_TYPE = 55;
+    internal const int MIN_SERVER_VER_OPT_OUT_SMART_ROUTING = 56;
+    internal const int MIN_SERVER_VER_SMART_COMBO_ROUTING_PARAMS = 57;
+    internal const int MIN_SERVER_VER_DELTA_NEUTRAL_CONID = 58;
+    internal const int MIN_SERVER_VER_SCALE_ORDERS3 = 60;
+    internal const int MIN_SERVER_VER_ORDER_COMBO_LEGS_PRICE = 61;
+    internal const int MIN_SERVER_VER_TRAILING_PERCENT = 62;
+    internal const int MIN_SERVER_VER_DELTA_NEUTRAL_OPEN_CLOSE = 66;
     internal const int SERVER_VERSION = 38;
     public TWSServerInfo(int version)
     {
@@ -269,7 +270,7 @@ namespace Daemaged.IBNet
     /// <summary>
     /// The unique contract identifier specifying the security.
     /// </summary>
-    public int ConId { get; set; }
+    public int ContractId { get; set; }
 
     /// <summary>
     /// Select the relative number of contracts for the leg you are constructing.
@@ -336,7 +337,7 @@ namespace Daemaged.IBNet
     public string Currency { get; set; }
     public string LocalSymbol { get; set; }
     // pick an actual (ie non-aggregate) exchange that the contract trades on.  DO NOT SET TO SMART.
-    public string PrimaryExch { get; set; }
+    public string PrimaryExchange { get; set; }
     public bool IncludeExpired { get; set; }
 
     // received in open order version 14 and up for all combos
@@ -364,7 +365,11 @@ namespace Daemaged.IBNet
 
     public int ContractId { get; set; }
 
-    public IBUnderlyinhComponent UnderlyinhComponent { get; set; }
+    public IBUnderlyinhComponent UnderlyingComponent { get; set; }
+
+    public string SecurityId { get; set; }
+
+    public IBSecurityType SecurityIdType { get; set; }
 
     public override bool Equals(object obj)
     {
@@ -649,7 +654,7 @@ namespace Daemaged.IBNet
       Delta = Double.MaxValue;
       StockRangeLower = Double.MaxValue;
       StockRangeUpper = Double.MaxValue;
-      Volatility = Double.MaxValue;
+      Volatility = Double.MaxValue;      
       VolatilityType = Int32.MaxValue;
       DeltaNeutralAuxPrice = Double.MaxValue;
       ReferencePriceType = Int32.MaxValue;
@@ -660,7 +665,7 @@ namespace Daemaged.IBNet
 
     public int ExemptCode { get; set; }
 
-    public int DeltaNeutralConId { get; set; }
+    public int DeltaNeutralContractId { get; set; }
 
     public string DeltaNeutralSettlingFirm { get; set; }
 

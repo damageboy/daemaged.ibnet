@@ -80,6 +80,8 @@ namespace Daemaged.IBNet.Client
     /// </summary>
     /// <seealso cref="TWSError"/>
     public TWSError Error { get; internal set; }
+
+    public string Message { get; set; }
   }
 
   /// <summary>
@@ -214,8 +216,16 @@ namespace Daemaged.IBNet.Client
     public IBTickType TickType { get; internal set; }
     public double ImpliedVol { get; internal set; }
     public double Delta { get; internal set; }
-    public double ModelPrice { get; internal set; }
+    public double OptionPrice { get; internal set; }
     public double PVDividend { get; internal set; }
+
+    public double Gamma { get; internal set; }
+
+    public double Vega { get; internal set; }
+
+    public double Theta { get; internal set; }
+
+    public double UnderlyingPrice { get; internal set; }
   }
 
   public class TWSCurrentTimeEventArgs : TWSClientEventArgs

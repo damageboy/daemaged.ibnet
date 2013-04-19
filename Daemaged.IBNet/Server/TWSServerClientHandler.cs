@@ -307,7 +307,7 @@ namespace Daemaged.IBNet.Server
           contract.Multiplier = _enc.DecodeString();
         contract.Exchange = _enc.DecodeString();
         if (ServerInfo.Version >= 14)
-          contract.PrimaryExch = _enc.DecodeString();
+          contract.PrimaryExchange = _enc.DecodeString();
         contract.Currency = _enc.DecodeString();
         if (ServerInfo.Version >= 2)
           contract.LocalSymbol = _enc.DecodeString();
@@ -315,7 +315,7 @@ namespace Daemaged.IBNet.Server
           int comboLegCount = _enc.DecodeInt();
           for (int i = 0; i < comboLegCount; i++) {
             var leg = new IBComboLeg {
-                                       ConId = _enc.DecodeInt(),
+                                       ContractId = _enc.DecodeInt(),
                                        Ratio = _enc.DecodeInt(),
                                        Action = _enc.DecodeEnum<IBAction>(),
                                        Exchange = _enc.DecodeString()

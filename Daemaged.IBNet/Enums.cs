@@ -575,6 +575,10 @@ namespace Daemaged.IBNet
   public enum IBSecurityType
   {
     /// <summary>
+    /// Undefined Security Type
+    /// </summary>
+    [StringSerializer("")] Undefined,
+    /// <summary>
     /// Stock
     /// </summary>
     [StringSerializer("STK")] Stock,
@@ -590,7 +594,7 @@ namespace Daemaged.IBNet
     [StringSerializer("FUT")] Future,
 
     /// <summary>
-    /// Indice
+    /// Index
     /// </summary>
     [StringSerializer("IND")] Index,
 
@@ -618,11 +622,6 @@ namespace Daemaged.IBNet
     /// Warrant
     /// </summary>
     [StringSerializer("WAR")] Warrant,
-
-    /// <summary>
-    /// Undefined Security Type
-    /// </summary>
-    [StringSerializer("")] Undefined
   }
 
   [Serializable]
