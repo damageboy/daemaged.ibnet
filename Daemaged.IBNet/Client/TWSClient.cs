@@ -300,10 +300,8 @@ namespace Daemaged.IBNet.Client
           return;
         }
 
-        if (ServerInfo.Version < 24) {
-          OnError(TWSErrors.UPDATE_TWS);
-          return;
-        }
+        if (ServerInfo.Version < 24)
+          throw new TWSOutdatedException();
 
         const int reqVersion = 1;
 
@@ -420,7 +418,7 @@ namespace Daemaged.IBNet.Client
         return;
       }
 
-      if (ServerInfo.Version < 34) {
+      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REAL_TIME_BARS) {
         OnError(TWSErrors.UPDATE_TWS);
         return;
       }
@@ -1912,7 +1910,7 @@ namespace Daemaged.IBNet.Client
           throw new NotConnectedException("Connect to TWS before placing orders");
         }
 
-        CheckCompatability(contract, order);
+        CheckServerCompatability(contract, order);
 
         var orderId = NextValidId;
 
@@ -2207,7 +2205,7 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-    private void CheckCompatability(IBContract contract, IBOrder order)
+    private void CheckServerCompatability(IBContract contract, IBOrder order)
     {
       //Scale Orders Minimum Version is 35
       if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS)
@@ -2378,14 +2376,12 @@ namespace Daemaged.IBNet.Client
           return -1;
         }
 
-        const int reqVersion = 3;
+        const int reqVersion = 4;
         var reqId = NextValidId;
 
         try {
-          if (ServerInfo.Version < 16) {
-            OnError(TWSErrors.UPDATE_TWS);
-            return -1;
-          }
+          if (ServerInfo.Version < 16)
+            throw new TWSOutdatedException();
 
           _enc.Encode(ServerMessage.RequestHistoricalData);
           _enc.Encode(reqVersion);
@@ -2400,6 +2396,8 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(contract.PrimaryExchange);
           _enc.Encode(contract.Currency);
           _enc.Encode(contract.LocalSymbol);
+          if (ServerInfo.Version >= 31)
+            _enc.Encode(contract.IncludeExpired ? 1 : 0);
           if (ServerInfo.Version >= 20) {
             _enc.Encode(endDateTime);
             _enc.Encode(barSizeSetting);
@@ -2411,15 +2409,12 @@ namespace Daemaged.IBNet.Client
             _enc.Encode(formatDate);
           }
           if (IBSecurityType.Bag == contract.SecurityType) {
-            if (contract.ComboLegs == null) {
+            if (contract.ComboLegs == null || contract.ComboLegs.Count == 0)
               _enc.Encode(0);
-            }
             else {
               _enc.Encode(contract.ComboLegs.Count);
 
-              IBComboLeg comboLeg;
-              for (int i = 0; i < contract.ComboLegs.Count; i++) {
-                comboLeg = contract.ComboLegs[i];
+              foreach (var comboLeg in contract.ComboLegs) {
                 _enc.Encode(comboLeg.ContractId);
                 _enc.Encode(comboLeg.Ratio);
                 _enc.Encode(comboLeg.Action);
@@ -2437,16 +2432,30 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-    public virtual int RequestMarketData(IBContract contract, IList<IBGenericTickType> genericTickList)
+    public virtual int RequestMarketData(IBContract contract, IList<IBGenericTickType> genericTickList, bool snapshot)
     {
       lock (this) {
         if (!IsConnected) {
           OnError(TWSErrors.NOT_CONNECTED);
           return -1;
         }
-        const int reqVersion = 5;
+
+        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SNAPSHOT_MKT_DATA && snapshot)
+          throw new TWSOutdatedException();
+
+        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_UNDER_COMP)
+          if (contract.UnderlyingComponent != null)
+            throw new TWSOutdatedException();
+
+
+        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_MKT_DATA_CONID)
+          if (contract.ContractId > 0)
+            throw new TWSOutdatedException();
+
+
+        const int reqVersion = 9;
         var reqId = NextValidId;
-        Debug.WriteLine(String.Format("REQ: {0}", reqId));
+        
         try {
           _enc.Encode(ServerMessage.RequestMarketData);
           _enc.Encode(reqVersion);
@@ -2465,11 +2474,11 @@ namespace Daemaged.IBNet.Client
           if (ServerInfo.Version >= 2)
             _enc.Encode(contract.LocalSymbol);
           if (ServerInfo.Version >= 8 && (contract.SecurityType == IBSecurityType.Bag)) {
-            if (contract.ComboLegs == null)
+            if (contract.ComboLegs == null || contract.ComboLegs.Count == 0)
               _enc.Encode(0);
             else {
               _enc.Encode(contract.ComboLegs.Count);
-              foreach (IBComboLeg leg in contract.ComboLegs) {
+              foreach (var leg in contract.ComboLegs) {
                 _enc.Encode(leg.ContractId);
                 _enc.Encode(leg.Ratio);
                 _enc.Encode(leg.Action);
@@ -2477,6 +2486,18 @@ namespace Daemaged.IBNet.Client
               }
             }
           }
+          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_UNDER_COMP)
+          {
+            if (contract.UnderlyingComponent != null) {
+              _enc.Encode(true);
+              _enc.Encode(contract.UnderlyingComponent.ContractId);
+              _enc.Encode(contract.UnderlyingComponent.Delta);
+              _enc.Encode(contract.UnderlyingComponent.Price);
+            }
+            else
+              _enc.Encode(false);
+            }
+
           if (ServerInfo.Version >= 31) {
             var sb = new StringBuilder();
             if (genericTickList != null) {
@@ -2490,6 +2511,10 @@ namespace Daemaged.IBNet.Client
           // If we got to here without choking on something
           // we update the request registry
           _marketDataRecords.Add(reqId, new TWSMarketDataSnapshot(contract));
+
+          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SNAPSHOT_MKT_DATA)
+            _enc.Encode(snapshot);
+
         }
         catch (Exception e) {
           OnError(TWSErrors.FAIL_SEND_REQMKT);
@@ -2500,6 +2525,448 @@ namespace Daemaged.IBNet.Client
         return reqId;
       }
     }
+
+    public  void RequestManagedAccounts() 
+    {
+      lock (this) {
+        // not connected?
+        if (!IsConnected) {
+          OnError(TWSErrors.NOT_CONNECTED);
+          return;
+        }
+
+        const int reqVersion = 1;
+
+        // send req FA managed accounts msg
+        try {
+          _enc.Encode(ServerMessage.RequestManagedAccounts);
+          _enc.Encode(reqVersion);
+        }
+        catch (Exception e)
+        {
+          OnError(TWSErrors.FAIL_SEND_OORDER);
+          Disconnect();
+        }
+      }
+    }
+
+    public void RequestFA(int faDataType)
+    {
+      // not connected?
+      if (!IsConnected) {
+        OnError(TWSErrors.NOT_CONNECTED);
+        return;
+      }
+
+      // This feature is only available for versions of TWS >= 13
+      if (ServerInfo.Version < 13)
+        throw new TWSOutdatedException();
+      
+      const int reqVersion = 1;
+
+      try {
+        _enc.Encode(ServerMessage.RequestFA);
+        _enc.Encode(reqVersion);
+        _enc.Encode(faDataType);
+      }
+      catch (Exception e) {
+        OnError(TWSErrors.FAIL_SEND_FA_REQUEST);
+        Disconnect();
+      }
+    }
+
+    public void ReplaceFA(int faDataType, String xml)
+    {
+      // not connected?
+      if (!IsConnected) {
+        OnError(TWSErrors.NOT_CONNECTED);
+        return;
+      }
+
+      // This feature is only available for versions of TWS >= 13
+      if (ServerInfo.Version < 13)
+        throw new TWSOutdatedException();
+
+      const int reqVersion = 1;
+
+      try {
+        _enc.Encode(ServerMessage.ReplaceFA);
+        _enc.Encode(reqVersion);
+        _enc.Encode(faDataType);
+        _enc.Encode(xml);
+      }
+      catch (Exception e) {
+        OnError(TWSErrors.FAIL_SEND_FA_REPLACE);
+        Disconnect();
+      }
+    }
+
+#if STILL_NOT_PORTED
+    
+    public synchronized void cancelScannerSubscription( int tickerId) {
+        // not connected?
+        if( !m_connected) {
+            error( EClientErrors.NO_VALID_ID, EClientErrors.NOT_CONNECTED, "");
+            return;
+        }
+
+        if (m_serverVersion < 24) {
+          error(EClientErrors.NO_VALID_ID, EClientErrors.UPDATE_TWS,
+                "  It does not support API scanner subscription.");
+          return;
+        }
+
+        final int VERSION = 1;
+
+        // send cancel mkt data msg
+        try {
+            send( CANCEL_SCANNER_SUBSCRIPTION);
+            send( VERSION);
+            send( tickerId);
+        }
+        catch( Exception e) {
+            error( tickerId, EClientErrors.FAIL_SEND_CANSCANNER, "" + e);
+            close();
+        }
+    }
+
+    public synchronized void reqScannerParameters() {
+        // not connected?
+        if (!m_connected) {
+            error(EClientErrors.NO_VALID_ID, EClientErrors.NOT_CONNECTED, "");
+            return;
+        }
+
+        if (m_serverVersion < 24) {
+          error(EClientErrors.NO_VALID_ID, EClientErrors.UPDATE_TWS,
+                "  It does not support API scanner subscription.");
+          return;
+        }
+
+        final int VERSION = 1;
+
+        try {
+            send(REQ_SCANNER_PARAMETERS);
+            send(VERSION);
+        }
+        catch( Exception e) {
+            error( EClientErrors.NO_VALID_ID,
+                   EClientErrors.FAIL_SEND_REQSCANNERPARAMETERS, "" + e);
+            close();
+        }
+    }
+
+    public synchronized void reqScannerSubscription( int tickerId,
+        ScannerSubscription subscription) {
+        // not connected?
+        if (!m_connected) {
+            error(EClientErrors.NO_VALID_ID, EClientErrors.NOT_CONNECTED, "");
+            return;
+        }
+
+        if (m_serverVersion < 24) {
+          error(EClientErrors.NO_VALID_ID, EClientErrors.UPDATE_TWS,
+                "  It does not support API scanner subscription.");
+          return;
+        }
+
+        final int VERSION = 3;
+
+        try {
+            send(REQ_SCANNER_SUBSCRIPTION);
+            send(VERSION);
+            send(tickerId);
+            sendMax(subscription.numberOfRows());
+            send(subscription.instrument());
+            send(subscription.locationCode());
+            send(subscription.scanCode());
+            sendMax(subscription.abovePrice());
+            sendMax(subscription.belowPrice());
+            sendMax(subscription.aboveVolume());
+            sendMax(subscription.marketCapAbove());
+            sendMax(subscription.marketCapBelow());
+            send(subscription.moodyRatingAbove());
+            send(subscription.moodyRatingBelow());
+            send(subscription.spRatingAbove());
+            send(subscription.spRatingBelow());
+            send(subscription.maturityDateAbove());
+            send(subscription.maturityDateBelow());
+            sendMax(subscription.couponRateAbove());
+            sendMax(subscription.couponRateBelow());
+            send(subscription.excludeConvertible());
+            if (m_serverVersion >= 25) {
+                send(subscription.averageOptionVolumeAbove());
+                send(subscription.scannerSettingPairs());
+            }
+            if (m_serverVersion >= 27) {
+                send(subscription.stockTypeFilter());
+            }
+        }
+        catch( Exception e) {
+            error( tickerId, EClientErrors.FAIL_SEND_REQSCANNER, "" + e);
+            close();
+        }
+    }
+
+
+        public synchronized void reqMarketDataType(int marketDataType) {
+        // not connected?
+        if( !m_connected) {
+            error( EClientErrors.NO_VALID_ID, EClientErrors.NOT_CONNECTED, "");
+            return;
+        }
+
+        if (m_serverVersion < MIN_SERVER_VER_REQ_MARKET_DATA_TYPE) {
+            error(EClientErrors.NO_VALID_ID, EClientErrors.UPDATE_TWS,
+                    "  It does not support marketDataType requests.");
+            return;
+        }
+        
+        final int VERSION = 1;
+
+        // send the reqMarketDataType message
+        try {
+            send( REQ_MARKET_DATA_TYPE);
+            send( VERSION);
+            send( marketDataType);
+        }
+        catch( Exception e) {
+            error( EClientErrors.NO_VALID_ID, EClientErrors.FAIL_SEND_REQMARKETDATATYPE, "" + e);
+            close();
+        }
+    }
+
+     synchronized void reqFundamentalData(int reqId, Contract contract,
+    		String reportType) {
+        if( !m_connected) {
+            error( reqId, EClientErrors.NOT_CONNECTED, "");
+            return;
+        }
+        
+        if( m_serverVersion < MIN_SERVER_VER_FUNDAMENTAL_DATA) {
+        	error( reqId, EClientErrors.UPDATE_TWS,
+        			"  It does not support fundamental data requests.");
+        	return;
+        }
+
+        final int VERSION = 1;
+
+        try {
+            // send req fund data msg
+            send( REQ_FUNDAMENTAL_DATA);
+            send( VERSION);
+            send( reqId);
+
+            // send contract fields
+            send( contract.m_symbol);
+            send( contract.m_secType);
+            send( contract.m_exchange);
+            send( contract.m_primaryExch);
+            send( contract.m_currency);
+            send( contract.m_localSymbol);
+            
+            send( reportType);
+        }
+        catch( Exception e) {
+            error( reqId, EClientErrors.FAIL_SEND_REQFUNDDATA, "" + e);
+            close();
+        }
+    }
+    
+    public synchronized void cancelFundamentalData(int reqId) {
+        if( !m_connected) {
+            error( reqId, EClientErrors.NOT_CONNECTED, "");
+            return;
+        }
+        
+        if( m_serverVersion < MIN_SERVER_VER_FUNDAMENTAL_DATA) {
+        	error( reqId, EClientErrors.UPDATE_TWS,
+        			"  It does not support fundamental data requests.");
+        	return;
+        }
+
+        final int VERSION = 1;
+
+        try {
+            // send req mkt data msg
+            send( CANCEL_FUNDAMENTAL_DATA);
+            send( VERSION);
+            send( reqId);
+        }
+        catch( Exception e) {
+            error( reqId, EClientErrors.FAIL_SEND_CANFUNDDATA, "" + e);
+            close();
+        }
+    }
+
+    public synchronized void calculateImpliedVolatility(int reqId, Contract contract, 
+            double optionPrice, double underPrice) {    
+
+        if (!m_connected) {
+            error(EClientErrors.NO_VALID_ID, EClientErrors.NOT_CONNECTED, "");
+            return;
+        }
+
+        if (m_serverVersion < MIN_SERVER_VER_REQ_CALC_IMPLIED_VOLAT) {
+            error(reqId, EClientErrors.UPDATE_TWS,
+                    "  It does not support calculate implied volatility requests.");
+            return;
+        }
+
+        final int VERSION = 1;
+
+        try {
+            // send calculate implied volatility msg
+            send( REQ_CALC_IMPLIED_VOLAT);
+            send( VERSION);
+            send( reqId);
+
+            // send contract fields
+            send( contract.m_conId);
+            send( contract.m_symbol);
+            send( contract.m_secType);
+            send( contract.m_expiry);
+            send( contract.m_strike);
+            send( contract.m_right);
+            send( contract.m_multiplier);
+            send( contract.m_exchange);
+            send( contract.m_primaryExch);
+            send( contract.m_currency);
+            send( contract.m_localSymbol);
+
+            send( optionPrice);
+            send( underPrice);
+        }
+        catch( Exception e) {
+            error( reqId, EClientErrors.FAIL_SEND_REQCALCIMPLIEDVOLAT, "" + e);
+            close();
+        }
+    }
+    
+    public synchronized void cancelCalculateImpliedVolatility(int reqId) {    
+
+        if (!m_connected) {
+            error(EClientErrors.NO_VALID_ID, EClientErrors.NOT_CONNECTED, "");
+            return;
+        }
+
+        if (m_serverVersion < MIN_SERVER_VER_CANCEL_CALC_IMPLIED_VOLAT) {
+            error(reqId, EClientErrors.UPDATE_TWS,
+                    "  It does not support calculate implied volatility cancellation.");
+            return;
+        }
+
+        final int VERSION = 1;
+
+        try {
+            // send cancel calculate implied volatility msg
+            send( CANCEL_CALC_IMPLIED_VOLAT);
+            send( VERSION);
+            send( reqId);
+        }
+        catch( Exception e) {
+            error( reqId, EClientErrors.FAIL_SEND_CANCALCIMPLIEDVOLAT, "" + e);
+            close();
+        }
+    }
+    
+    public synchronized void calculateOptionPrice(int reqId, Contract contract, 
+            double volatility, double underPrice) {    
+
+        if (!m_connected) {
+            error(EClientErrors.NO_VALID_ID, EClientErrors.NOT_CONNECTED, "");
+            return;
+        }
+
+        if (m_serverVersion < MIN_SERVER_VER_REQ_CALC_OPTION_PRICE) {
+            error(reqId, EClientErrors.UPDATE_TWS,
+                    "  It does not support calculate option price requests.");
+            return;
+        }
+
+        final int VERSION = 1;
+
+        try {
+            // send calculate option price msg
+            send( REQ_CALC_OPTION_PRICE);
+            send( VERSION);
+            send( reqId);
+
+            // send contract fields
+            send( contract.m_conId);
+            send( contract.m_symbol);
+            send( contract.m_secType);
+            send( contract.m_expiry);
+            send( contract.m_strike);
+            send( contract.m_right);
+            send( contract.m_multiplier);
+            send( contract.m_exchange);
+            send( contract.m_primaryExch);
+            send( contract.m_currency);
+            send( contract.m_localSymbol);
+
+            send( volatility);
+            send( underPrice);
+        }
+        catch( Exception e) {
+            error( reqId, EClientErrors.FAIL_SEND_REQCALCOPTIONPRICE, "" + e);
+            close();
+        }
+    }
+
+    public synchronized void cancelCalculateOptionPrice(int reqId) {    
+
+        if (!m_connected) {
+            error(EClientErrors.NO_VALID_ID, EClientErrors.NOT_CONNECTED, "");
+            return;
+        }
+
+        if (m_serverVersion < MIN_SERVER_VER_CANCEL_CALC_OPTION_PRICE) {
+            error(reqId, EClientErrors.UPDATE_TWS,
+                    "  It does not support calculate option price cancellation.");
+            return;
+        }
+
+        final int VERSION = 1;
+
+        try {
+            // send cancel calculate option price msg
+            send( CANCEL_CALC_OPTION_PRICE);
+            send( VERSION);
+            send( reqId);
+        }
+        catch( Exception e) {
+            error( reqId, EClientErrors.FAIL_SEND_CANCALCOPTIONPRICE, "" + e);
+            close();
+        }
+    }    
+    
+    public synchronized void reqGlobalCancel() {
+        // not connected?
+        if( !m_connected) {
+            error( EClientErrors.NO_VALID_ID, EClientErrors.NOT_CONNECTED, "");
+            return;
+        }
+
+        if (m_serverVersion < MIN_SERVER_VER_REQ_GLOBAL_CANCEL) {
+            error(EClientErrors.NO_VALID_ID, EClientErrors.UPDATE_TWS,
+                    "  It does not support globalCancel requests.");
+            return;
+        }
+        
+        final int VERSION = 1;
+
+        // send request global cancel msg
+        try {
+            send( REQ_GLOBAL_CANCEL);
+            send( VERSION);
+        }
+        catch( Exception e) {
+            error( EClientErrors.NO_VALID_ID, EClientErrors.FAIL_SEND_REQGLOBALCANCEL, "" + e);
+            close();
+        }
+    }
+#endif
 
     public virtual void RequestRealTimeBars(int reqId, IBContract contract,
                                             int barSize, string whatToShow, bool useRTH)
@@ -2631,10 +3098,8 @@ namespace Daemaged.IBNet.Client
     public virtual void RequestOpenOrders()
     {
       // not connected?
-      if (!IsConnected) {
-        OnError(TWSErrors.NOT_CONNECTED);
-        return;
-      }
+      if (!IsConnected)
+        throw new NotConnectedException();        
 
       const int reqVersion = 1;
 
@@ -2700,20 +3165,24 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-    public virtual void RequestExecutions(IBExecutionFilter filter)
+    public virtual int RequestExecutions(IBExecutionFilter filter)
     {
       // not connected?
       if (!IsConnected) {
-        OnError(TWSErrors.NOT_CONNECTED);
-        return;
+        throw new NotConnectedException();        
       }
 
-      const int reqVersion = 2;
+      const int reqVersion = 3;
 
       // send cancel order msg
       try {
         _enc.Encode(ServerMessage.RequestExecutions);
         _enc.Encode(reqVersion);
+
+        var requestId = NextValidId;
+
+        if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_EXECUTION_DATA_CHAIN)
+          _enc.Encode(requestId);
 
         // Send the execution rpt filter data
         if (ServerInfo.Version >= 9) {
@@ -2726,12 +3195,14 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(filter.SecurityType);
           _enc.Encode(filter.Exchange);
           _enc.Encode(filter.Side);
+          return requestId;
         }
       }
       catch (Exception e) {
         OnError(TWSErrors.FAIL_SEND_EXEC);
         OnError(e.Message);
         Disconnect();
+        return -1;
       }
     }
 
@@ -2757,27 +3228,38 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-    public virtual void RequestContractDetails(IBContract contract)
+    public virtual int RequestContractDetails(IBContract contract)
     {
       // not connected?
       if (!IsConnected) {
         OnError(TWSErrors.NOT_CONNECTED);
-        return;
+        return -1;
       }
 
       // This feature is only available for versions of TWS >=4
-      if (ServerInfo.Version < 4) {
-        OnError(TWSErrors.UPDATE_TWS);
-        return;
-      }
+      if (ServerInfo.Version < 4)
+        throw new TWSOutdatedException();
+      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE)
+        if (contract.SecurityIdType != IBSecurityType.Undefined || !String.IsNullOrEmpty(contract.SecurityId))
+          throw new TWSOutdatedException();
 
-      const int reqVersion = 3;
+
+      const int reqVersion = 6;
 
       try {
         // send req mkt data msg
         _enc.Encode(ServerMessage.RequestContractData);
         _enc.Encode(reqVersion);
 
+        var requestId = NextValidId;
+
+        if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_DATA_CHAIN)
+        {
+          _enc.Encode(requestId);
+        }
+        // send contract fields
+        if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_CONID)
+          _enc.Encode(contract.ContractId);
         _enc.Encode(contract.Symbol);
         _enc.Encode(contract.SecurityType);
         _enc.Encode(contract.Expiry.ToString(IB_EXPIRY_DATE_FORMAT));
@@ -2789,14 +3271,19 @@ namespace Daemaged.IBNet.Client
         _enc.Encode(contract.Exchange);
         _enc.Encode(contract.Currency);
         _enc.Encode(contract.LocalSymbol);
-        if (ServerInfo.Version >= 31) {
+        if (ServerInfo.Version >= 31)
           _enc.Encode(contract.IncludeExpired);
+        if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE) {
+          _enc.Encode(contract.SecurityIdType);
+          _enc.Encode(contract.SecurityId);
         }
+        return requestId;
       }
       catch (Exception e) {
         OnError(TWSErrors.FAIL_SEND_REQCONTRACT);
         OnError(e.Message);
         Disconnect();
+        return -1;
       }
     }
 
@@ -2810,8 +3297,7 @@ namespace Daemaged.IBNet.Client
 
       // This feature is only available for versions of TWS >= 33
       if (ServerInfo.Version < 33) {
-        OnError(TWSErrors.UPDATE_TWS);
-        return;
+        throw new TWSOutdatedException();        
       }
 
       const int reqVersion = 1;
@@ -2935,13 +3421,7 @@ namespace Daemaged.IBNet.Client
     
   }
 
-  public class NotConnectedException : Exception
-  {
-    public NotConnectedException(string message) : base(message) { }
-  }
+  public class NotConnectedException : Exception { }
 
-  internal class TWSOutdatedException : Exception
-  {
-    public TWSOutdatedException(string message) : base(message) { }
-  }
+  internal class TWSOutdatedException : Exception { }
 }
