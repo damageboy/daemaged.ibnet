@@ -352,7 +352,7 @@ namespace Daemaged.IBNet
     LastYield = 52,
 
     /// <summary>
-    /// returns calculated implied volatility as a result of an calculateImpliedVolatility( ) request.
+    /// returns calculated implied volatility as a result of an CalculateImpliedVolatility( ) request.
     /// </summary>
     CustOptionComputation = 53,
 
