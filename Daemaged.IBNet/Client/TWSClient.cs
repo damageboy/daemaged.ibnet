@@ -205,8 +205,8 @@ namespace Daemaged.IBNet.Client
           OnStatusChanged(Status = TWSClientStatus.Connected);
         }
         catch (Exception e) {
-          OnError(e.Message);
-          OnError(TWSErrors.CONNECT_FAIL);
+          Disconnect();
+          throw;
         }
       }
     }
@@ -2792,7 +2792,7 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-    public void cancelCalculateOptionPrice(int reqId)
+    public void CancelCalculateOptionPrice(int reqId)
     {
       if (!IsConnected)
         throw new NotConnectedException();
@@ -2814,7 +2814,7 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-    public void reqGlobalCancel()
+    public void RequestGlobalCancel()
     {
       // not connected?
       if (!IsConnected)

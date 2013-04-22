@@ -45,6 +45,7 @@ using System.ComponentModel;
 
 namespace Daemaged.IBNet
 {
+  public class StringSerializableAttribute : Attribute { }
   public class StringSerializerAttribute : Attribute
   {
     public StringSerializerAttribute(string s)
@@ -56,7 +57,7 @@ namespace Daemaged.IBNet
   }
 
 
-  [Serializable]
+  [StringSerializable]
   public enum IBOrderStatus
   {
     [StringSerializer("Cancelled")]
@@ -74,6 +75,8 @@ namespace Daemaged.IBNet
     [StringSerializer("Submitted")]
     Submitted,
   }
+
+  
 
 
   // IMPORTANT: The numeric values here must stay synchronized with those in
@@ -372,7 +375,7 @@ namespace Daemaged.IBNet
     VolumeRate = 56
   }
 
-  [Serializable]
+  [StringSerializable]
   public enum IBGenericTickType
   {
     /// <summary>
@@ -460,7 +463,7 @@ namespace Daemaged.IBNet
     DELETE = 2
   }
 
-  [Serializable]
+  [StringSerializable]
   public enum IBOrderType
   {
     /// <summary>
@@ -571,7 +574,7 @@ namespace Daemaged.IBNet
 
   // IMPORTANT: The values here must stay synchronized with those in
   // IMarketDataProducer!
-  [Serializable]
+  [StringSerializable]
   public enum IBSecurityType
   {
     /// <summary>
@@ -624,7 +627,7 @@ namespace Daemaged.IBNet
     [StringSerializer("WAR")] Warrant,
   }
 
-  [Serializable]
+  [StringSerializable]
   public enum IBAction
   {
     /// <summary>
@@ -655,7 +658,7 @@ namespace Daemaged.IBNet
   }
 
 
-  [Serializable]
+  [StringSerializable]
   public enum IBTimeInForce
   {
     /// <summary>

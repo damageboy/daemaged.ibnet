@@ -176,15 +176,15 @@ namespace IBNet.Util
 
     private static Expression SwitchOnChar<T>(ParameterExpression keyParameter, Expression defaultExpr, SwitchCase<T>[] switchCases, int index, int lower, int upper)
     {
-      if (index == switchCases[upper].Key.Length)
-        return null;
-
       if (lower == upper)
       {
         return Expression.Condition(
           Expression.Call(_stringEquals, keyParameter, Expression.Constant(switchCases[lower].Key)),
           Expression.Convert(Expression.Constant(switchCases[lower].Value), typeof(T)), defaultExpr);
       }
+
+      if (index == switchCases[upper].Key.Length)
+        return null;
 
       switchCases = switchCases.Skip(lower).Take(upper - lower + 1)
         .OrderBy(switchCase => switchCase.Key, StaticStringDictionaryComparer.For(index)).ToArray();

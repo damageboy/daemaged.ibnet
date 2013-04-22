@@ -100,7 +100,7 @@ namespace Daemaged.IBNet
     {
       var enums =
         from t in Assembly.GetExecutingAssembly().GetTypes()
-        where t.IsEnum && t.IsSerializable
+        where t.IsEnum && t.GetCustomAttribute<StringSerializableAttribute>() != null
         select t;
 
 
@@ -109,13 +109,13 @@ namespace Daemaged.IBNet
 
     private static void ValidateAllValuesAreMapped(Type e)
     {
-      var members = e.GetMembers();
+      var fields = e.GetFields(BindingFlags.Public | BindingFlags.Static);
       var q =
-        from v in members
-        where v.GetCustomAttribute<DescriptionAttribute>() != null
+        from v in fields
+        where v.GetCustomAttribute<StringSerializerAttribute>() != null
         select v;
 
-      if (members.Length != q.Count())
+      if (fields.Length != q.Count())
         throw new ArgumentException(string.Format("Type {0} doesn't have seriazliation value for each member", e));
     }
 
@@ -162,8 +162,12 @@ namespace Daemaged.IBNet
     }
     public void Encode<T>(T value) where T : struct, IConvertible
     {
-      var t = typeof (T);                  
-      Encode(_enumDecoders[t].EnumSerializares[IntCaster<T>.ToInt(value)]);
+      var t = typeof (T);
+
+      if (_enumDecoders.ContainsKey(t))
+        Encode(_enumDecoders[t].EnumSerializares[IntCaster<T>.ToInt(value)]);
+      else
+        Encode(IntCaster<T>.ToInt(value));
     }
 
     public virtual void Encode(bool value)
