@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>Mono.Options</id>
+    <version>1.0</version>
+    <title>Mono.Options</title>
+    <authors>Jonathan Pryor,  Federico Di Gregorio,  Mono development team</authors>
+    <owners>Jonathan Pryor,  Federico Di Gregorio,  Mono development team</owners>
+    <licenseUrl>https://github.com/mono/mono/blob/master/mcs/class/Mono.Options/Mono.Options/Options.cs</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A callback-based program option parser for C#. See the documenation at http://docs.go-mono.com/?link=N%3aMono.Options and some examples in the code and under the OptionSet topic at http://docs.go-mono.com/?link=T%3aMono.Options.OptionSet</description>
+    <summary>A callback-based program option parser for C#.</summary>
+    <releaseNotes />
+    <copyright />
+    <language />
+    <tags>mono commandline parse args arguments options</tags>
+    <references />
+  </metadata>
+</package>

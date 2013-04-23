@@ -193,6 +193,11 @@ namespace Daemaged.IBNet
         Encode(value);
     }
 
+    public void Flush()
+    {
+      _stream.Flush();
+    }
+
     public virtual void EncodeMax(int value)
     {
       if (value == 0x7fffffff)
@@ -274,11 +279,12 @@ namespace Daemaged.IBNet
 
     public virtual void Encode(string text)
     {
-      if (text != null)
-        foreach (var c in text.ToCharArray())
-          _stream.WriteByte((byte) c);
-      _stream.WriteByte(0);
-      _stream.Flush();
+      if (!String.IsNullOrEmpty(text)) {
+        var bytes = Encoding.UTF8.GetBytes(text);
+        _stream.Write(bytes, 0, bytes.Length);
+      }
+
+      _stream.WriteByte(0);      
     }
 
     public virtual string DecodeString()

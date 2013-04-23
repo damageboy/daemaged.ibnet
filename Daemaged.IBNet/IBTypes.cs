@@ -367,7 +367,7 @@ namespace Daemaged.IBNet
 
     public string SecurityId { get; set; }
 
-    public IBSecurityType SecurityIdType { get; set; }
+    public IBSecurityIdType SecurityIdType { get; set; }
 
     public override bool Equals(object obj)
     {
@@ -452,9 +452,6 @@ namespace Daemaged.IBNet
   {
     public IBExecution()
     {
-      ClientId = OrderID = Shares = Liquidation = 0;
-      Price = 0;
-      ExecID = Time = AcctNumber = Exchange = Side = null;
     }
 
     public string AcctNumber { get; set; }
@@ -466,7 +463,7 @@ namespace Daemaged.IBNet
     public int PermId { get; set; }
     public double Price { get; set; }
     public int Shares { get; set; }
-    public string Side { get; set; }
+    public IBExecutionSide Side { get; set; }
     public string Time { get; set; }
 
     public int CumQty { get; set; }
@@ -482,19 +479,38 @@ namespace Daemaged.IBNet
 
   public class IBOrder
   {
-    internal const int AUCTION_IMPROVEMENT = 2;
-    internal const int AUCTION_MATCH = 1;
-    internal const int AUCTION_TRANSPARENT = 3;
-    internal const int CUSTOMER = 0;
-    internal const string EMPTY_STR = "";
-    internal const int FIRM = 1;
-    internal const char OPT_BROKER_DEALER = 'b';
-    internal const char OPT_CUSTOMER = 'c';
-    internal const char OPT_FARMM = 'n';
-    internal const char OPT_FIRM = 'f';
-    internal const char OPT_ISEMM = 'm';
-    internal const char OPT_SPECIALIST = 'y';
-    internal const char OPT_UNKNOWN = '?';
+
+    public IBOrder()
+    {
+      OpenClose = "O";
+      Origin = IBOrderOrigin.Customer;
+      Transmit = true;
+      Tif = IBTimeInForce.Day;
+      DesignatedLocation = "";
+      MinQty = Int32.MaxValue;
+      PercentOffset = Double.MaxValue;
+      NbboPriceCap = Double.MaxValue;
+      StartingPrice = Double.MaxValue;
+      StockRefPrice = Double.MaxValue;
+      Delta = Double.MaxValue;
+      StockRangeLower = Double.MaxValue;
+      StockRangeUpper = Double.MaxValue;
+      Volatility = Double.MaxValue;
+      VolatilityType = IBVolatilityType.Undefined;
+      DeltaNeutralOrderType = IBOrderType.Empty;
+      DeltaNeutralAuxPrice = Double.MaxValue;
+      ReferencePriceType = Int32.MaxValue;
+      TrailStopPrice = Double.MaxValue;
+      BasisPoints = Double.MaxValue;
+      BasisPointsType = Int32.MaxValue;
+      ScaleInitLevelSize = Int32.MaxValue;
+      ScaleSubsLevelSize = Int32.MaxValue;
+      ScalePriceIncrement = Double.MaxValue;
+      FaMethod = IBFinancialAdvisorAllocationMethod.None;
+      NotHeld = false;
+      ExemptCode = -1;
+    }
+
 
     /// <summary>
     /// The order id
@@ -579,7 +595,7 @@ namespace Daemaged.IBNet
 
     // Financial advisors only 
     public string FaGroup;
-    public string FaMethod;
+    public IBFinancialAdvisorAllocationMethod FaMethod;
     public string FaPercentage;
     public string FaProfile;
     public bool FirmQuoteOnly;
@@ -599,7 +615,7 @@ namespace Daemaged.IBNet
     
     public string OrderRef;
     
-    public int Origin; // 0=Customer, 1=Firm
+    public IBOrderOrigin Origin; // 0=Customer, 1=Firm
     public bool OverridePercentageConstraints;
     public int ParentId; // Parent order Id, to associate Auto STP or TRAIL orders with the original order.
     public double PercentOffset; // REL orders only
@@ -608,7 +624,7 @@ namespace Daemaged.IBNet
     [Obsolete]
     public bool RthOnly;
 
-    public string Rule80A;
+    public IBAgentDescription Rule80A;
                   // Individual = 'I', Agency = 'A', AgentOtherMember = 'W', IndividualPTIA = 'J', AgencyPTIA = 'U', AgentOtherMemberPTIA = 'M', IndividualPT = 'K', AgencyPT = 'Y', AgentOtherMemberPT = 'N'
 
     public string SettlingFirm;
@@ -636,30 +652,8 @@ namespace Daemaged.IBNet
 
     // VOLATILITY ORDERS ONLY
     public double Volatility;
-    public int VolatilityType; // 1=daily, 2=annual
+    public IBVolatilityType VolatilityType;
 
-    public IBOrder()
-    {
-      OpenClose = "O";
-      Origin = CUSTOMER;
-      Transmit = true;
-      DesignatedLocation = EMPTY_STR;
-      MinQty = Int32.MaxValue;
-      PercentOffset = Double.MaxValue;
-      NbboPriceCap = Double.MaxValue;
-      StartingPrice = Double.MaxValue;
-      StockRefPrice = Double.MaxValue;
-      Delta = Double.MaxValue;
-      StockRangeLower = Double.MaxValue;
-      StockRangeUpper = Double.MaxValue;
-      Volatility = Double.MaxValue;      
-      VolatilityType = Int32.MaxValue;
-      DeltaNeutralAuxPrice = Double.MaxValue;
-      ReferencePriceType = Int32.MaxValue;
-      TrailStopPrice = Double.MaxValue;
-      BasisPoints = Int32.MaxValue;
-      BasisPointsType = Int32.MaxValue;
-    }
 
     public int ExemptCode { get; set; }
 
@@ -777,11 +771,11 @@ namespace Daemaged.IBNet
   }
 
   /// <summary>
-  /// The openOrder() callback with the new OrderState() object will now be invoked
+  /// The openOrder() callback with the new IBOrderState() object will now be invoked
   /// each time TWS receives commission information for a trade.
   /// </summary>
   [Serializable]
-  public class OrderState
+  public class IBOrderState
   {
     #region Properties
 

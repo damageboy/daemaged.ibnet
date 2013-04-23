@@ -56,27 +56,318 @@ namespace Daemaged.IBNet
     public string Value { get; private set; }
   }
 
+  /// <summary>
+  /// Time frame for Volatility
+  /// </summary>
+  [Serializable]
+  public enum IBVolatilityType
+  {
+    /// <summary>
+    /// Undefined Volatility
+    /// </summary>
+    Undefined = 0,
+    /// <summary>
+    /// Daily Average Volatility
+    /// </summary>
+    Daily = 1,
+    /// <summary>
+    /// Annual Average Volatility
+    /// </summary>
+    Annual = 2
+  }
+
+  /// <summary>
+  /// Used for the set server log level
+  /// </summary>
+  [Serializable]
+  public enum LogLevel
+  {
+    /// <summary>
+    /// Undefined Log Level
+    /// </summary>
+    Undefined = 0,
+    /// <summary>
+    /// System Messages
+    /// </summary>
+    System = 1,
+    /// <summary>
+    /// Error Messages
+    /// </summary>
+    Error = 2,
+    /// <summary>
+    /// Warning Messages
+    /// </summary>
+    Warning = 3,
+    /// <summary>
+    /// Information Messages
+    /// </summary>
+    Information = 4,
+    /// <summary>
+    /// Detail Messages
+    /// </summary>
+    Detail = 5
+  }
+
+  [Serializable]
+  public enum IBOrderOrigin
+  {
+    /// <summary>
+    /// Order originated from the customer
+    /// </summary>
+    Customer = 0,
+    /// <summary>
+    /// Order originated from teh firm
+    /// </summary>
+    Firm = 1
+  }
+
+  /// <summary>
+  /// Used for Rule 80A describes the type of trader.
+  /// </summary>
+  [StringSerializable]
+  public enum IBAgentDescription
+  {
+    /// <summary>
+    /// No Description Provided
+    /// </summary>
+    [StringSerializer("")]
+    None,
+
+    /// <summary>
+    /// An individual
+    /// </summary>
+    [StringSerializer("I")]
+    Individual,
+    /// <summary>
+    /// An Agency
+    /// </summary>
+    [StringSerializer("A")]
+    Agency,
+    /// <summary>
+    /// An Agent or Other Member
+    /// </summary>
+    [StringSerializer("W")]
+    AgentOtherMember,
+    /// <summary>
+    /// Individual PTIA
+    /// </summary>
+    [StringSerializer("J")]
+    IndividualPTIA,
+    /// <summary>
+    /// Agency PTIA
+    /// </summary>
+    [StringSerializer("U")]
+    AgencyPTIA,
+    /// <summary>
+    /// Agether or Other Member PTIA
+    /// </summary>
+    [StringSerializer("M")]
+    AgentOtherMemberPTIA,
+    /// <summary>
+    /// Individual PT
+    /// </summary>
+    [StringSerializer("K")]
+    IndividualPT,
+    /// <summary>
+    /// Agency PT
+    /// </summary>
+    [StringSerializer("Y")]
+    AgencyPT,
+    /// <summary>
+    /// Agent Other Member PT
+    /// </summary>
+    [StringSerializer("N")]
+    AgentOtherMemberPT,
+  }
+
+  /// <summary>
+  /// Financial Advisor Allocation Method
+  /// </summary>
+  [StringSerializable]
+  public enum IBFinancialAdvisorAllocationMethod
+  {
+    /// <summary>
+    /// Percent Change
+    /// </summary>
+    [StringSerializer("PctChange")]
+    PercentChange,
+    /// <summary>
+    /// Available Equity
+    /// </summary>
+    [StringSerializer("AvailableEquity")]
+    AvailableEquity,
+    /// <summary>
+    /// Net Liquidity
+    /// </summary>
+    [StringSerializer("NetLiq")]
+    NetLiquidity,
+    /// <summary>
+    /// Equal Quantity
+    /// </summary>
+    [StringSerializer("EqualQuantity")]
+    EqualQuantity,
+    /// <summary>
+    /// No Allocation Method
+    /// </summary>
+    [StringSerializer("")]
+    None
+  }
+
+  /// <summary>
+  /// Describes wether a security was bought or sold in an execution.
+  /// The past tense equivalent of ActionSide.
+  /// </summary>
+  [StringSerializable]
+  public enum IBExecutionSide
+  {
+    /// <summary>
+    /// Securities were bought.
+    /// </summary>
+    [StringSerializer("BOT")]
+    Bought,
+    /// <summary>
+    /// Securities were sold.
+    /// </summary>
+    [StringSerializer("SLD")]
+    Sold
+  }
+
 
   [StringSerializable]
   public enum IBOrderStatus
   {
-    [StringSerializer("Cancelled")]
-    Cancelled,
-    [StringSerializer("Filled")]
-    Filled,
-    [StringSerializer("Inactive")]
-    Inactive,
-    [StringSerializer("PendingCancel")]
-    PendingCancel,
+    /// <summary>
+    /// indicates that you have transmitted the order, but have not yet received
+    /// confirmation that it has been accepted by the order destination.
+    /// This order status is not sent by TWS and should be explicitly set by the API developer when an order is submitted.
+    /// </summary>
     [StringSerializer("PendingSubmit")]
     PendingSubmit,
+    /// <summary>
+    /// PendingCancel - indicates that you have sent a request to cancel the order
+    /// but have not yet received cancel confirmation from the order destination.
+    /// At this point, your order is not confirmed canceled. You may still receive
+    /// an execution while your cancellation request is pending.
+    /// This order status is not sent by TWS and should be explicitly set by the API developer when an order is canceled.
+    /// </summary>
+    [StringSerializer("PendingCancel")]
+    PendingCancel,
+    /// <summary>
+    /// indicates that a simulated order type has been accepted by the IB system and
+    /// that this order has yet to be elected. The order is held in the IB system
+    /// (and the status remains DARK BLUE) until the election criteria are met.
+    /// At that time the order is transmitted to the order destination as specified
+    /// (and the order status color will change).
+    /// </summary>
     [StringSerializer("PreSubmitted")]
     PreSubmitted,
+    /// <summary>
+    /// indicates that your order has been accepted at the order destination and is working.
+    /// </summary>
     [StringSerializer("Submitted")]
     Submitted,
+    /// <summary>
+    /// indicates that the balance of your order has been confirmed canceled by the IB system.
+    /// This could occur unexpectedly when IB or the destination has rejected your order.
+    /// </summary>
+    [StringSerializer("Cancelled")]
+    Canceled,
+    /// <summary>
+    /// The order has been completely filled.
+    /// </summary>
+    [StringSerializer("Filled")]
+    Filled,
+    /// <summary>
+    /// The Order is inactive
+    /// </summary>
+    [StringSerializer("Inactive")]
+    Inactive,
+    /// <summary>
+    /// The order is Partially Filled
+    /// </summary>
+    [StringSerializer("PartiallyFilled")]
+    PartiallyFilled,
+    /// <summary>
+    /// Api Pending
+    /// </summary>
+    [StringSerializer("ApiPending")]
+    ApiPending,
+    /// <summary>
+    /// Api Cancelled
+    /// </summary>
+    [StringSerializer("ApiCancelled")]
+    ApiCancelled,
+    /// <summary>
+    /// Indicates that there is an error with this order
+    /// This order status is not sent by TWS and should be explicitly set by the API developer when an error has occured.
+    /// </summary>
+    [StringSerializer("Error")]
+    Error,
+    /// <summary>
+    /// No Order Status
+    /// </summary>
+    [StringSerializer("")]
+    None
   }
 
-  
+  /// <summary>
+  /// Option Right Type (Put or Call)
+  /// </summary>
+  [StringSerializable]
+  public enum IBRightType
+  {    
+    /// <summary>
+    /// Option type is not defined (contract is not an option).
+    /// </summary>
+    [StringSerializer("")]
+    Undefined,
+    /// <summary>
+    /// Option type is a Put (Right to sell)
+    /// </summary>
+    /// Description tag used to be "PUT"
+    [StringSerializer("P")]
+    Put,
+    /// <summary>
+    /// Option type is a Call (Right to buy)
+    /// </summary>
+    /// Description tag used to be "CALL"
+    [StringSerializer("C")]
+    Call,
+  }
+
+
+  /// <summary>
+  /// Historical Bar Size Requests
+  /// </summary>
+  [StringSerializable]
+  public enum IBSecurityIdType
+  {
+    /// <summary>
+    /// No Security Id Type
+    /// </summary>
+    [StringSerializer("")]
+    None,
+    /// <summary>
+    /// Example: Apple: US0378331005
+    /// </summary>
+    [StringSerializer("ISIN")]
+    ISIN,
+    /// <summary>
+    /// Example: Apple: 037833100
+    /// </summary>
+    [StringSerializer("CUSIP")]
+    CUSIP,
+    /// <summary>
+    /// Consists of 6-AN + check digit. Example: BAE: 0263494
+    /// </summary>
+    [StringSerializer("SEDOL")]
+    SEDOL,
+    /// <summary>
+    /// Consists of exchange-independent RIC Root and a suffix identifying the exchange. Example: AAPL.O for Apple on NASDAQ.
+    /// </summary>
+    [StringSerializer("RIC")]
+    RIC
+  }
 
 
   // IMPORTANT: The numeric values here must stay synchronized with those in

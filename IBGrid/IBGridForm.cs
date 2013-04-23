@@ -9,6 +9,7 @@ using System.Xml.Serialization;
 using Daemaged.IBNet;
 using Daemaged.IBNet.Client;
 using Daemaged.IBNet.Playback;
+using Mono.Options;
 using SourceGrid;
 using SourceGrid.Cells;
 using SourceGrid.Cells.Views;
@@ -46,11 +47,19 @@ namespace IBGrid
     private delegate void UpdateGridRowDelegate(TWSMarketDataSnapshot e, IBTickType t);
 
     private UpdateGridRowDelegate _updateGridRowDelegate;
+    private bool _autoConnect;
+    private string _twsHost;
+    private int _twsPort;
+    private string _instrumentFile;
 
     #region Constructor
 
-    public IBGridForm()
+    public IBGridForm(string[] args)
     {
+      _twsHost = "localhost";
+      _twsPort = 7496;
+
+     
       InitializeComponent();
 
       _grids = new List<Grid>();
@@ -80,7 +89,30 @@ namespace IBGrid
 
       _logGridRow = 1;
 
-      _updateGridRowDelegate = this.UpdateGridRow;
+      _updateGridRowDelegate = UpdateGridRow;
+
+      ParseCommandLine(args);
+    }
+
+    private void ParseCommandLine(string[] args)
+    {
+      var options = new OptionSet {
+        {"c|connect", "auto connect to TWS", v => _autoConnect = v != null},
+        {"h|host",    "TWS host", v => _twsHost = v},        
+        {"p|port",    "TWS host", v => _twsPort = Int32.Parse(v)},
+      };
+      var extra = options.Parse(args);
+      if (extra.Count > 1) {
+        var sw = new StringWriter();
+        options.WriteOptionDescriptions(sw);               
+        options.WriteOptionDescriptions(sw);
+        MessageBox.Show(sw.ToString(), "Usage Error - too many files specified", MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+        
+      }
+      if (extra.Count == 1)
+        _instrumentFile = extra.Single();
+
     }
 
     #endregion
@@ -140,8 +172,7 @@ namespace IBGrid
       grid.Controller.AddController(new PopupSelection());
       grid.ColumnsCount = (int) IBGridColumn.LAST_COLUMN;
       grid.Rows.Insert(0);
-      for (int i = 0; i < (int) IBGridColumn.LAST_COLUMN; i++)
-      {
+      for (var i = 0; i < (int) IBGridColumn.LAST_COLUMN; i++) {
         grid[0, i] = new SourceGrid.Cells.ColumnHeader(((IBGridColumn) i).ToString());
         grid[0, i].View = _columnHeaderView;
       }
@@ -149,19 +180,19 @@ namespace IBGrid
 
       grid.Rows.Insert(1);
 
-      Type cft = typeof (IBSimplefiedContract);
-      foreach (var p in cft.GetProperties())
-      {
+      var cft = typeof (IBSimplefiedContract);
+      foreach (var p in cft.GetProperties()) {
         var attrs = from a in p.GetCustomAttributes(false)
                     where a is GridCellInfoAttribute
                     select (a as GridCellInfoAttribute).Column;
 
-        if (attrs.Count() == 0)
+        if (!attrs.Any())
           continue;
 
-        grid[1, (int) attrs.First()] = new SourceGrid.Cells.Cell(null, p.PropertyType);
-        grid[1, (int) attrs.First()].Tag = p.PropertyType;
-        grid[1, (int) attrs.First()].View = _yellowView;
+        grid[1, (int) attrs.First()] = new SourceGrid.Cells.Cell(null, p.PropertyType) {
+          Tag = p.PropertyType,
+          View = _yellowView
+        };
       }
       grid.Rows[1].AutoSizeMode = SourceGrid.AutoSizeMode.EnableAutoSize;
 
@@ -189,19 +220,17 @@ namespace IBGrid
 
     private void SetupMarketDataGridColumns(Grid grid)
     {
-      IBSecurityType secType = (IBSecurityType) grid.Tag;
-      if (secType != IBSecurityType.FutureOption &&
-          secType != IBSecurityType.Option)
-      {
-        grid.Columns[(int) IBGridColumn.AskDelta].Visible = false;
-        grid.Columns[(int) IBGridColumn.BidDelta].Visible = false;
-        grid.Columns[(int) IBGridColumn.BidImpVol].Visible = false;
-        grid.Columns[(int) IBGridColumn.AskImpVol].Visible = false;
-        grid.Columns[(int) IBGridColumn.Delta].Visible = false;
-        grid.Columns[(int) IBGridColumn.Volatility].Visible = false;
-        grid.Columns[(int) IBGridColumn.Price].Visible = false;
-        grid.Columns[(int) IBGridColumn.PVDividend].Visible = false;
-      }
+      var secType = (IBSecurityType) grid.Tag;
+      if (secType == IBSecurityType.FutureOption || secType == IBSecurityType.Option) 
+        return;
+      grid.Columns[(int) IBGridColumn.AskDelta].Visible = false;
+      grid.Columns[(int) IBGridColumn.BidDelta].Visible = false;
+      grid.Columns[(int) IBGridColumn.BidImpVol].Visible = false;
+      grid.Columns[(int) IBGridColumn.AskImpVol].Visible = false;
+      grid.Columns[(int) IBGridColumn.Delta].Visible = false;
+      grid.Columns[(int) IBGridColumn.Volatility].Visible = false;
+      grid.Columns[(int) IBGridColumn.Price].Visible = false;
+      grid.Columns[(int) IBGridColumn.PVDividend].Visible = false;
     }
 
     private void SetupMarketDataGridRow(Grid grid, int r)
@@ -210,19 +239,19 @@ namespace IBGrid
       {
         grid.Rows.Insert(r);
       }
-      for (int i = 0; i <= (int) LAST_CONTRACT_DETAILS_COLUMN; i++)
+      for (var i = 0; i <= (int) LAST_CONTRACT_DETAILS_COLUMN; i++)
       {
         Type t = grid[1, (int) i].Tag as Type;
-        grid[r, (int) i] = new SourceGrid.Cells.Cell(null, t);
-        grid[r, (int) i].Tag = t;
-        grid[r, (int) i].View = _yellowView;
+        grid[r, i] = new SourceGrid.Cells.Cell(null, t) {
+          Tag = t, 
+          View = _yellowView
+        };
       }
 
-      for (int i = (int) LAST_CONTRACT_DETAILS_COLUMN + 1; i < (int) IBGridColumn.LAST_COLUMN; i++)
-      {
-        ICell cell = new SourceGrid.Cells.Cell(0.0);
+      for (var i = (int) LAST_CONTRACT_DETAILS_COLUMN + 1; i < (int) IBGridColumn.LAST_COLUMN; i++) {
+        var cell = new SourceGrid.Cells.Cell(0.0);
         grid[r, i] = cell;
-        bool alternate = (r%2 != 0);
+        var alternate = (r%2 != 0);
         if (i <= (int) LAST_STATUS_DETAILS_COLUMN)
           cell.View = alternate ? _lightGreen : _darkGreen;
         else
@@ -237,70 +266,71 @@ namespace IBGrid
 
     private void AddNewItemToolStripMenuItem_Click(object sender, EventArgs e)
     {
-      Grid g = gridTab.SelectedTab.Tag as Grid;
-      int row = g.Selection.ActivePosition.Row + 1;
+      var g = gridTab.SelectedTab.Tag as Grid;
+      var row = g.Selection.ActivePosition.Row + 1;
 
       g.Rows.Insert(row);
       SetupMarketDataGridRow(g, row);
     }
 
-    private void ClearLineToolStripMenuItem_Click(object sender, EventArgs e)
+    private void ClearLineToolStripMenuItemClick(object sender, EventArgs e)
     {
-      Grid g = gridTab.SelectedTab.Tag as Grid;
-      int row = g.Selection.ActivePosition.Row;
+      var g = gridTab.SelectedTab.Tag as Grid;
+      var row = g.Selection.ActivePosition.Row;
       SetupMarketDataGridRow(g, row);
     }
 
-    private void ConnectButton_Click(object sender, EventArgs e)
+    private void ConnectButtonClick(object sender, EventArgs e)
     {
-      ConnectForm cf = new ConnectForm();
+      var cf = new ConnectForm {
+        HostTextBox = {Text = _twsHost}, 
+        PortTextBox = {Text = _twsPort.ToString()}
+      };
 
       if (cf.ShowDialog() != DialogResult.OK)
         return;
 
-      string host = cf.HostTextBox.Text;
-      int port = Int32.Parse(cf.PortTextBox.Text);
+      _twsHost = cf.HostTextBox.Text;
+      _twsPort = Int32.Parse(cf.PortTextBox.Text);
 
-      ConnectToTWS(host, port);
+      ConnectToTWS(_twsHost, _twsPort);
     }
 
-    private void ConnectLocalButton_Click(object sender, EventArgs e)
+    private void ConnectLocalButtonClick(object sender, EventArgs e)
     {
-      ConnectToTWS("127.0.0.1", 7496);
+      _twsHost = "localhost";
+      _twsPort = 7496;
+
+      ConnectToTWS(_twsHost, _twsPort);
     }
 
-    private void DisconnectButton_Click(object sender, EventArgs e)
+    private void DisconnectButtonClick(object sender, EventArgs e)
     {
       DisconnectFromTWS();
     }
 
-    private void Form_FormClosed(object sender, FormClosedEventArgs e)
+    private void OnFormClosed(object sender, FormClosedEventArgs e)
     {
       Environment.Exit(0);
     }
 
-    private void LogSizeTextBoxTimer_Tick(object sender, EventArgs e)
+    private void LogSizeTextBoxTimerTick(object sender, EventArgs e)
     {
-      if (_client.RecordStream != null)
-      {
-        Stream fs = _client.RecordStream;
+      if (_client.RecordStream == null) 
+        return;
+      var fs = _client.RecordStream;
 
-        if (fs.Length > 1024*1024)
-        {
-          if (fs.Length > 1024*1024*1024)
-            logSizeTextBox.Text = String.Format("{0:F2} GB", fs.Length/(1024*1024*1024.0));
-          else
-            logSizeTextBox.Text = String.Format("{0:F2} MB", fs.Length/(1024*1024.0));
-        }
-        else
-          logSizeTextBox.Text = String.Format("{0:F2} KB", fs.Length/(1024.0));
-      }
+      logSizeTextBox.Text = fs.Length > 1024*1024
+        ? (fs.Length > 1024*1024*1024 ? 
+            String.Format("{0:F2} GB", fs.Length/(1024*1024*1024.0)) : 
+            String.Format("{0:F2} MB", fs.Length/(1024*1024.0))) : 
+          String.Format("{0:F2} KB", fs.Length/(1024.0));
     }
 
-    private void OpenButton_ButtonClick(object sender, EventArgs e)
+    private void OpenButtonButtonClick(object sender, EventArgs e)
     {
       string filename;
-      using (OpenFileDialog ofd = new OpenFileDialog())
+      using (var ofd = new OpenFileDialog())
       {
         ofd.Filter = ("IML Files|*.iml");
         if (ofd.ShowDialog() != DialogResult.OK)
@@ -312,55 +342,55 @@ namespace IBGrid
       LoadInstrumens(filename);
     }
 
-    private void OpenButton_DropDownOpening(object sender, EventArgs e)
+    private void OpenButtonDropDownOpening(object sender, EventArgs e)
     {
       openButton.DropDownItems.Clear();
       foreach (var f in Directory.GetFiles(Directory.GetCurrentDirectory(), "*.iml"))
       {
         var fi = new FileInfo(f);
         var item = new ToolStripMenuItem() {Text = fi.Name, Tag = f};
-        item.Click += new System.EventHandler(this.QuickAccessItem_Click);
+        item.Click += QuickAccessItemClick;
         openButton.DropDownItems.Add(item);
       }
     }
 
-    private void PlaybackRewindButton_Click(object sender, EventArgs e)
+    private void PlaybackRewindButtonClick(object sender, EventArgs e)
     {
       _playback.Reset();
     }
 
-    private void PlaybackPauseButton_Click(object sender, EventArgs e)
+    private void PlaybackPauseButtonClick(object sender, EventArgs e)
     {
       _playback.Pause();
       playbackPauseButton.Enabled = _playback.IsRunning;
       playbackPlayButton.Enabled = !_playback.IsRunning;
     }
 
-    private void PlaybackStepButton_Click(object sender, EventArgs e)
+    private void PlaybackStepButtonClick(object sender, EventArgs e)
     {
       _playback.Pause();
       _playback.Step();
 
     }
 
-    private void PlaybackPlayButton_Click(object sender, EventArgs e)
+    private void PlaybackPlayButtonClick(object sender, EventArgs e)
     {
       _playback.Speed = PlaybackSpeed.Normal;
       _playback.Start();
     }
 
-    private void PlaybackFastForwardButton_Click(object sender, EventArgs e)
+    private void PlaybackFastForwardButtonClick(object sender, EventArgs e)
     {
       _playback.Speed = PlaybackSpeed.FullSpeedProcessing;
     }
 
-    private void PlaybackStopButton_Click(object sender, EventArgs e)
+    private void PlaybackStopButtonClick(object sender, EventArgs e)
     {
       _playback.Stop();
     }
 
 
-    private void PropertiesButton_Click(object sender, EventArgs e)
+    private void PropertiesButtonClick(object sender, EventArgs e)
     {
       if (propertiesButton.CheckState == CheckState.Checked)
       {
@@ -381,7 +411,7 @@ namespace IBGrid
       }
     }
 
-    private void ResizeButton_Click(object sender, EventArgs e)
+    private void ResizeButtonClick(object sender, EventArgs e)
     {
       foreach (var g in _grids)
       {
@@ -390,20 +420,19 @@ namespace IBGrid
       }
     }
 
-    private void SaveButton_Click(object sender, EventArgs e)
+    private void SaveButtonClick(object sender, EventArgs e)
     {
       SaveInstruments(_filename);
     }
 
-    private void QuickAccessItem_Click(object sender, EventArgs e)
+    private void QuickAccessItemClick(object sender, EventArgs e)
     {
       LoadInstrumens((string) (sender as ToolStripMenuItem).Tag);
     }
 
-    private void SaveAsButton_Click(object sender, EventArgs e)
+    private void SaveAsButtonClick(object sender, EventArgs e)
     {
-      using (SaveFileDialog sfd = new SaveFileDialog())
-      {
+      using (var sfd = new SaveFileDialog()) {
         sfd.Filter = "IML Files|*.iml";
         sfd.OverwritePrompt = true;
 
@@ -415,15 +444,14 @@ namespace IBGrid
       SaveInstruments(_filename);
     }
 
-    private void RecordButtonBlinkTimer_Tick(object sender, EventArgs e)
+    private void RecordButtonBlinkTimerTick(object sender, EventArgs e)
     {
-      if (recordMarketDataButton.BackColor == Color.Red)
-        recordMarketDataButton.BackColor = SystemColors.Control;
-      else
-        recordMarketDataButton.BackColor = Color.Red;
+      recordMarketDataButton.BackColor = recordMarketDataButton.BackColor == Color.Red ? 
+        SystemColors.Control : 
+        Color.Red;
     }
 
-    private void RecordMarketDataButton_Click(object sender, EventArgs e)
+    private void RecordMarketDataButtonClick(object sender, EventArgs e)
     {
       if (recordMarketDataButton.Tag == null || (bool) recordMarketDataButton.Tag == false)
         recordButtonBlinkTimer.Start();
@@ -433,7 +461,7 @@ namespace IBGrid
       recordMarketDataButton.Tag = recordButtonBlinkTimer.Enabled;
     }
 
-    private void OpenLogFileButton_Click(object sender, EventArgs e)
+    private void OpenLogFileButtonClick(object sender, EventArgs e)
     {
       string fileName;
       using (var ofd = new OpenFileDialog())
@@ -450,24 +478,19 @@ namespace IBGrid
     #endregion
 
     #region TWS Client Events
-
-    private void Client_Error(object sender, TWSClientErrorEventArgs e)
+    [UIThread]
+    private void ClientError(object sender, TWSClientErrorEventArgs e)
     {
-      if (InvokeRequired)
-        Invoke(new EventHandler<TWSClientErrorEventArgs>(Client_Error), sender, e);
-      else
-      {
-        int i = 0;
-        logGrid.Rows.Insert(_logGridRow);
-        logGrid[_logGridRow, i] = new SourceGrid.Cells.Cell(DateTime.Now);
-        logGrid[_logGridRow, i].View = _defaultViewClearType;
-        logGrid[_logGridRow, 1] = new SourceGrid.Cells.Cell(e.RequestId);
-        logGrid[_logGridRow, 2] = new SourceGrid.Cells.Cell(e.Error.Code);
-        logGrid[_logGridRow, 3] = new SourceGrid.Cells.Cell(e.Error.Message);
-      }
+      var i = 0;
+      logGrid.Rows.Insert(_logGridRow);
+      logGrid[_logGridRow, i] = new SourceGrid.Cells.Cell(DateTime.Now);
+      logGrid[_logGridRow, i].View = _defaultViewClearType;
+      logGrid[_logGridRow, 1] = new SourceGrid.Cells.Cell(e.RequestId);
+      logGrid[_logGridRow, 2] = new SourceGrid.Cells.Cell(e.Error.Code);
+      logGrid[_logGridRow, 3] = new SourceGrid.Cells.Cell(e.Error.Message);
     }
 
-    private void Client_MarketData(object sender, TWSMarketDataEventArgs e)
+    private void ClientMarketData(object sender, TWSMarketDataEventArgs e)
     {
       if (InvokeRequired)
       {
@@ -479,7 +502,7 @@ namespace IBGrid
         _updateGridRowDelegate(e.Snapshot, e.TickType);
     }
 
-    private void Client_MarketDataLogger(object sender, TWSMarketDataEventArgs e)
+    private void ClientMarketDataLogger(object sender, TWSMarketDataEventArgs e)
     {
       if (e.Snapshot.Contract.SecurityType == IBSecurityType.Index)
       {
@@ -517,28 +540,22 @@ namespace IBGrid
       file.WriteLine("{0},{1},{2},{3}", ts.Ticks, last, size, (int) tickType);
     }
 
-
-    private void Client_StatusChanged(object sender, TWSClientStatusEventArgs e)
+    [UIThread]
+    private void ClientStatusChanged(object sender, TWSClientStatusEventArgs e)
     {
-      if (InvokeRequired)
-        this.BeginInvoke(new EventHandler<TWSClientStatusEventArgs>(Client_StatusChanged));
+      statusButton.Image = (_client.IsConnected)
+                             ? Properties.Resources.bullet_square_green
+                             : Properties.Resources.bullet_square_red;
+      statusButton.Text = statusButton.ToolTipText = e.Status.ToString();
+      if (_client.IsConnected) {
+        _symbolDataMap.Clear();
+        UpdateContractListsFromGrid();
+        RegisterContractLists();
+        logSizeTextBoxTimer.Start();
+      }
       else
       {
-        statusButton.Image = (_client.IsConnected)
-                               ? IBGrid.Properties.Resources.bullet_square_green
-                               : IBGrid.Properties.Resources.bullet_square_red;
-        statusButton.Text = statusButton.ToolTipText = e.Status.ToString();
-        if (_client.IsConnected)
-        {
-          _symbolDataMap.Clear();
-          UpdateContractListsFromGrid();
-          RegisterContractLists();
-          logSizeTextBoxTimer.Start();
-        }
-        else
-        {
-          logSizeTextBoxTimer.Stop();
-        }
+        logSizeTextBoxTimer.Stop();
       }
     }
 
@@ -587,18 +604,18 @@ namespace IBGrid
 
     private void AddGenericClientEventHandlers()
     {
-      _client.StatusChanged += Client_StatusChanged;
-      _client.MarketData += Client_MarketData;
-      _client.MarketData += Client_MarketDataLogger;
-      _client.Error += Client_Error;
+      _client.StatusChanged += ClientStatusChanged;
+      _client.MarketData += ClientMarketData;
+      _client.MarketData += ClientMarketDataLogger;
+      _client.Error += ClientError;
     }
 
     private void RemoveGenericClientEventHandlers()
     {
-      _client.StatusChanged -= Client_StatusChanged;
-      _client.MarketData -= Client_MarketData;
-      _client.MarketData -= Client_MarketDataLogger;
-      _client.Error -= Client_Error;
+      _client.StatusChanged -= ClientStatusChanged;
+      _client.MarketData -= ClientMarketData;
+      _client.MarketData -= ClientMarketDataLogger;
+      _client.Error -= ClientError;
     }
 
     #endregion
@@ -654,19 +671,18 @@ namespace IBGrid
 
     private void UpdateGridRow(TWSMarketDataSnapshot s, IBTickType t)
     {
-      InstrumentDataRecord record = _symbolDataMap[s.Contract];
+      var record = _symbolDataMap[s.Contract];
 
       record.Snapshot = s;
       // Make sure we don't crash and burn on the first invocation
       if (record.PreviousSnapshot == null)
         record.PreviousSnapshot = record.Snapshot;
 
-      Grid g = record.Grid;
-      int r = record.Row;
-      TWSMarketDataSnapshot p = record.PreviousSnapshot;
+      var g = record.Grid;
+      var r = record.Row;
+      var p = record.PreviousSnapshot;
 
-      try
-      {
+      try {
         UnHighlightCells(record);
 
         if (s.LastTimeStamp != p.LastTimeStamp) SetValue(record, IBGridColumn.UpdateTime, s.LastTimeStamp);
@@ -761,11 +777,11 @@ namespace IBGrid
 
     private void LoadInstrumens(string filename)
     {
-      XmlSerializer xs = new XmlSerializer(typeof (RecordedInstruments));
+      var xs = new XmlSerializer(typeof (RecordedInstruments));
 
       Cursor = Cursors.WaitCursor;
 
-      using (XmlTextReader reader = new XmlTextReader(filename))
+      using (var reader = new XmlTextReader(filename))
       {
         _instruments = (RecordedInstruments) xs.Deserialize(reader);
         reader.Close();
@@ -782,10 +798,9 @@ namespace IBGrid
     {
       UpdateContractListsFromGrid();
 
-      XmlSerializer xs = new XmlSerializer(typeof (RecordedInstruments));
+      var xs = new XmlSerializer(typeof(RecordedInstruments));
 
-      using (XmlTextWriter writer = new XmlTextWriter(filename, System.Text.Encoding.UTF8))
-      {
+      using (var writer = new XmlTextWriter(filename, System.Text.Encoding.UTF8)) {
         writer.Formatting = Formatting.Indented;
         xs.Serialize(writer, _instruments);
         writer.Flush();
@@ -797,37 +812,33 @@ namespace IBGrid
     private void UpdateContractListFromGrid(IList<IBSimplefiedContract> contracts, Grid grid)
     {
       contracts.Clear();
-      for (int i = 1; i < grid.Rows.Count; i++)
-      {
-        try
-        {
-          var contract = new IBSimplefiedContract();
+      // The last row is always empty
+      for (var i = 1; i < grid.Rows.Count - 1; i++) {        
+        try {
+          var contract = new IBSimplefiedContract {
+            SecurityType = (IBSecurityType) grid[i, (int) IBGridColumn.SecType].Value,
+            Currency = (string) grid[i, (int) IBGridColumn.Currency].Value,
+            Exchange = (string) grid[i, (int) IBGridColumn.Exchange].Value,
+            Symbol = (string) grid[i, (int) IBGridColumn.Symbol].Value,
+            Rollover = (string) grid[i, (int) IBGridColumn.Rollover].Value,
+            PutOrCall = (string) grid[i, (int) IBGridColumn.PutOrCall].Value
+          };
 
           // SecurityType always has to be present...
-          contract.SecurityType = (IBSecurityType) grid[i, (int) IBGridColumn.SecType].Value;
 
           // String fields are always "safe"
-          contract.Currency = (string) grid[i, (int) IBGridColumn.Currency].Value;
-          contract.Exchange = (string) grid[i, (int) IBGridColumn.Exchange].Value;
-          contract.Symbol = (string) grid[i, (int) IBGridColumn.Symbol].Value;
-          contract.Rollover = (string) grid[i, (int) IBGridColumn.Rollover].Value;
-          contract.PutOrCall = (string) grid[i, (int) IBGridColumn.PutOrCall].Value;
 
           if (contract.SecurityType == IBSecurityType.FutureOption ||
-              contract.SecurityType == IBSecurityType.Option)
-          {
+              contract.SecurityType == IBSecurityType.Option) {
             contract.Expiry = (DateTime) grid[i, (int) IBGridColumn.Expiry].Value;
             contract.Strike = (double) grid[i, (int) IBGridColumn.Strike].Value;
             contract.Multiplier = (int) grid[i, (int) IBGridColumn.Multiplier].Value;
           }
 
-          if (contract.SecurityType == IBSecurityType.FutureOption)
-          {
+          if (contract.SecurityType == IBSecurityType.FutureOption) {
             contract.Expiry = (DateTime) grid[i, (int) IBGridColumn.Expiry].Value;
             contract.Multiplier = (int) grid[i, (int) IBGridColumn.Multiplier].Value;
           }
-
-
           contracts.Add(contract);
         }
         catch (NullReferenceException)
@@ -849,7 +860,7 @@ namespace IBGrid
 
     private void UpdateGridFromContractLists(IList<IBSimplefiedContract> contracts, Grid grid)
     {
-      int i = 1;
+      var i = 1;
       foreach (var contract in contracts)
       {
         SetupMarketDataGridRow(grid, i);
@@ -880,9 +891,14 @@ namespace IBGrid
 
     #endregion
 
-    private void logGrid_Paint(object sender, PaintEventArgs e)
+    private void IbGridFormShown(object sender, EventArgs e)
     {
+      // Not that everything is up, start handling the command line args etc.
+      if (_instrumentFile != null)
+        LoadInstrumens(_instrumentFile);
 
+      if (_autoConnect)
+        ConnectToTWS(_twsHost, _twsPort);
     }
   }
 }

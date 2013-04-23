@@ -72,6 +72,7 @@ namespace Daemaged.IBNet
     void EncodeExpiryDate(DateTime expiry);
     void EncodeMax(int value);
     void EncodeMax(double value);
-    
+    void Flush();
+
   }
 }

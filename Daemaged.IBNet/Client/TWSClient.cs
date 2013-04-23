@@ -160,6 +160,7 @@ namespace Daemaged.IBNet.Client
 
 
           _enc.Encode(ClientInfo);
+          _enc.Flush();
           _doWork = true;
 
           // Only create a reader thread if this Feed IS NOT reconnecting
@@ -477,8 +478,8 @@ namespace Daemaged.IBNet.Client
         OnError(String.Format("OnTickPrice: Error request id {0}", reqId));
         return;
       }
-      Console.WriteLine("Client: Received tick price msg for reqid " + reqId + ", symbol " + record.Contract.Symbol +
-                        ", price: " + price);
+      //Console.WriteLine("Client: Received tick price msg for reqid " + reqId + ", symbol " + record.Contract.Symbol +
+      //                  ", price: " + price);
       // Crap?
       if (record.Contract.SecurityType != IBSecurityType.Index &&
           record.Contract.SecurityType != IBSecurityType.Cash &&
@@ -754,7 +755,7 @@ namespace Daemaged.IBNet.Client
         });
     }
 
-    protected void OnOpenOrder(int orderId, IBOrder order, IBContract contract, OrderState orderState)
+    protected void OnOpenOrder(int orderId, IBOrder order, IBContract contract, IBOrderState orderState)
     {
       if (OpenOrder != null)
         OpenOrder(this, new TWSOpenOrderEventArgs(this) {
@@ -965,7 +966,7 @@ namespace Daemaged.IBNet.Client
       OnOrderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld);
     }
 
-    private void ProcessErrMsg()
+    private void ProcessErrorMessage()
     {
       var version = _enc.DecodeInt();
       if (version < 2) {
@@ -1011,7 +1012,7 @@ namespace Daemaged.IBNet.Client
       order.OcaGroup = _enc.DecodeString();
       order.Account = _enc.DecodeString();
       order.OpenClose = _enc.DecodeString();
-      order.Origin = _enc.DecodeInt();
+      order.Origin = _enc.DecodeEnum<IBOrderOrigin>();
       order.OrderRef = _enc.DecodeString();
 
       if (version >= 3)
@@ -1036,7 +1037,7 @@ namespace Daemaged.IBNet.Client
 
       if (version >= 7) {
         order.FaGroup = _enc.DecodeString();
-        order.FaMethod = _enc.DecodeString();
+        order.FaMethod = _enc.DecodeEnum<IBFinancialAdvisorAllocationMethod>();
         order.FaPercentage = _enc.DecodeString();
         order.FaProfile = _enc.DecodeString();
       }
@@ -1045,7 +1046,7 @@ namespace Daemaged.IBNet.Client
         order.GoodTillDate = _enc.DecodeString();
 
       if (version >= 9) {
-        order.Rule80A = _enc.DecodeString();
+        order.Rule80A = _enc.DecodeEnum<IBAgentDescription>();
         order.PercentOffset = _enc.DecodeDouble();
         order.SettlingFirm = _enc.DecodeString();
         order.ShortSaleSlot = _enc.DecodeInt();
@@ -1081,7 +1082,7 @@ namespace Daemaged.IBNet.Client
 
       if (version >= 11) {
         order.Volatility = _enc.DecodeDouble();
-        order.VolatilityType = _enc.DecodeInt();
+        order.VolatilityType = _enc.DecodeEnum<IBVolatilityType>();
         if (version == 11) {
           var receivedInt = _enc.DecodeInt();
           order.DeltaNeutralOrderType = ((receivedInt == 0) ? IBOrderType.None : IBOrderType.Market);
@@ -1234,7 +1235,7 @@ namespace Daemaged.IBNet.Client
         }
       }
 
-      var orderState = new OrderState();
+      var orderState = new IBOrderState();
 
       if (version >= 16) {
 
@@ -1406,7 +1407,7 @@ namespace Daemaged.IBNet.Client
           Time = _enc.DecodeString(),
           AcctNumber = _enc.DecodeString(),
           Exchange = _enc.DecodeString(),
-          Side = _enc.DecodeString(),
+          Side = _enc.DecodeEnum<IBExecutionSide>(),
           Shares = _enc.DecodeInt(),
           Price = _enc.DecodeDouble(),
           PermId = version >= 2 ? _enc.DecodeInt() : 0,
@@ -1839,7 +1840,7 @@ namespace Daemaged.IBNet.Client
         case ClientMessage.TickString:             ProcessTickString();             break;
         case ClientMessage.TickEfp:                ProcessTickEFP();                break;
         case ClientMessage.OrderStatus:            ProcessOrderStatus();            break;
-        case ClientMessage.ErrorMessage:           ProcessErrMsg();                 break;
+        case ClientMessage.ErrorMessage:           ProcessErrorMessage();                 break;
         case ClientMessage.OpenOrder:              ProcessOpenOrder();              break;
         case ClientMessage.AccountValue:           ProcessAccountValue();           break;
         case ClientMessage.PortfolioValue:         ProcessPortfolioValue();         break;
@@ -1994,7 +1995,6 @@ namespace Daemaged.IBNet.Client
             }
           }
 
-
           if (ServerInfo.Version >= 9)
             _enc.Encode(String.Empty); // Deprecated order.SharesAllocation
           if (ServerInfo.Version >= 10)
@@ -2047,7 +2047,7 @@ namespace Daemaged.IBNet.Client
             }
             if (ServerInfo.Version >= 26) {
               _enc.EncodeMax(order.Volatility);
-              _enc.EncodeMax(order.VolatilityType);
+              _enc.Encode(order.VolatilityType);
               if (ServerInfo.Version < 28) {
                 _enc.Encode(order.DeltaNeutralOrderType == IBOrderType.Market);
               }
@@ -2212,7 +2212,7 @@ namespace Daemaged.IBNet.Client
           throw new TWSOutdatedException();
 
       if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE)
-        if (contract.SecurityIdType != IBSecurityType.Undefined || !string.IsNullOrEmpty(contract.SecurityId))
+        if (contract.SecurityIdType != IBSecurityIdType.None || !string.IsNullOrEmpty(contract.SecurityId))
           throw new TWSOutdatedException();
 
       if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_PLACE_ORDER_CONID)
@@ -2418,9 +2418,12 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(ServerMessage.RequestMarketData);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
+          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_REQ_MKT_DATA_CONID)
+            _enc.Encode(contract.ContractId);
+          
           _enc.Encode(contract.Symbol);
           _enc.Encode(contract.SecurityType);
-          _enc.Encode(contract.Expiry.ToString(IB_EXPIRY_DATE_FORMAT));
+          _enc.Encode(contract.Expiry != DateTime.MinValue ? contract.Expiry.ToString(IB_EXPIRY_DATE_FORMAT) : "");
           _enc.Encode(contract.Strike);
           _enc.Encode(contract.Right);
           if (ServerInfo.Version >= 15)
@@ -2459,7 +2462,7 @@ namespace Daemaged.IBNet.Client
           if (ServerInfo.Version >= 31) {
             var sb = new StringBuilder();
             if (genericTickList != null) {
-              foreach (IBGenericTickType tick in genericTickList)
+              foreach (var tick in genericTickList)
                 sb.Append((int) tick).Append(',');
               sb.Remove(sb.Length - 2, 1);
             }
@@ -2472,6 +2475,8 @@ namespace Daemaged.IBNet.Client
 
           if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SNAPSHOT_MKT_DATA)
             _enc.Encode(snapshot);
+
+          _enc.Flush();
 
           return reqId;
         }
@@ -3078,7 +3083,7 @@ namespace Daemaged.IBNet.Client
       if (ServerInfo.Version < 4)
         throw new TWSOutdatedException();
       if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE)
-        if (contract.SecurityIdType != IBSecurityType.Undefined || !String.IsNullOrEmpty(contract.SecurityId))
+        if (contract.SecurityIdType != IBSecurityIdType.None || !String.IsNullOrEmpty(contract.SecurityId))
           throw new TWSOutdatedException();
 
 

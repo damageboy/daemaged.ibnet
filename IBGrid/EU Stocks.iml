@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RecordedInstruments xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Options />
+  <Stocks>
+      <IBSimplefiedContract>
+      <Symbol>VOD</Symbol>
+      <SecType>Stock</SecType>
+      <Expiry>0001-01-01T00:00:00</Expiry>
+      <Strike>0</Strike>
+      <Multiplier>0</Multiplier>
+      <Exchange>LSE</Exchange>
+      <Currency>GBP</Currency>
+    </IBSimplefiedContract>
+    <IBSimplefiedContract>
+      <Symbol>AB1</Symbol>
+      <SecType>Stock</SecType>
+      <Expiry>0001-01-01T00:00:00</Expiry>
+      <Strike>0</Strike>
+      <Multiplier>0</Multiplier>
+      <Exchange>IBIS</Exchange>
+      <Currency>EUR</Currency>
+    </IBSimplefiedContract>
+  </Stocks>
+  <StockOptions />
+  <Indices />
+  <Futures />
+  <FutureOptions />
+</RecordedInstruments>

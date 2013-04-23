@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RecordedInstruments xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Options />
+  <Stocks>
+    <IBSimplefiedContract><Symbol>ACOR</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>AFOP</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>AGYS</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>BBBY</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>BNCN</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>C</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>CELG</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>CFI</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>EFII</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>HP</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>IHC</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>KCAP</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>KOG</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>LNN</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>MTDR</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>MTZ</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>MYGN</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>NGS</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>NRG</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>OPK</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>PII</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>RM</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>RRC</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>SAPE</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>SSBI</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>VRSN</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>AAON</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>AI</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>AINV</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>ANGO</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>ANSS</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>ARLP</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>ASR</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>ATW</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>BPL</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>CFNL</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>COR</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>CRBC</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>DPM</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>EQT</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>HCOM</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>INN</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>LEA</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>LUK</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>MBWM</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>MIL</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>NDSN</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>PDLI</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>PL</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>RGC</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>INTC</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>MSFT</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>QQQ</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>SIRI</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>DELL</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>CSCO</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>FB</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>BBRY</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>MU</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>SPLS</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>NFLX</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>ZNGA</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>YHOO</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>TXN</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>AAPL</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>ORCL</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>NXPI</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>HBAN</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>MDLZ</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+    <IBSimplefiedContract><Symbol>EBAY</Symbol><SecurityType>Stock</SecurityType><Exchange>SMART</Exchange><Currency>USD</Currency></IBSimplefiedContract>
+  </Stocks>
+  <StockOptions />
+  <Indices />
+  <Futures />
+  <FutureOptions />
+</RecordedInstruments>
