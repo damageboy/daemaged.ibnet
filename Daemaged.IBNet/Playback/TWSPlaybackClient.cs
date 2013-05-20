@@ -161,7 +161,7 @@ namespace Daemaged.IBNet.Playback
     {
       // Have any market data request sent to the loopback server
       // simulate the end-result of a SendMarketDataRequest() call...
-      _marketDataRecords.Add(e.ReqId, new TWSMarketDataSnapshot(e.Contract));
+      _marketDataRecords.Add(e.ReqId, new TWSMarketDataSnapshot(e.Contract, e.ReqId));
     }
 
     private void LoopbackServer_MarketDepthCancel(object sender, TWSMarketDataCancelEventArgs e)

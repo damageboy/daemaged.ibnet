@@ -356,6 +356,8 @@ namespace Daemaged.IBNet.Client
     public TWSContractDetailsEventArgs(TWSClient client) : base(client) {}
 
     public IBContractDetails ContractDetails { get; internal set; }
+
+    public int RequestId { get; set; }
   }
 
   public class TWSUpdatePortfolioEventArgs : TWSClientEventArgs

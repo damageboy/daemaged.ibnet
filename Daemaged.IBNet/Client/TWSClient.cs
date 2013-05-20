@@ -42,7 +42,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -50,6 +49,9 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+#if NET_4_5
+using System.Threading.Tasks;
+#endif
 
 namespace Daemaged.IBNet.Client
 {
@@ -774,7 +776,10 @@ namespace Daemaged.IBNet.Client
     protected void OnContractDetails(int reqId, IBContractDetails contract)
     {
       if (ContractDetails != null)
-        ContractDetails(this, new TWSContractDetailsEventArgs(this) { ContractDetails = contract });
+        ContractDetails(this, new TWSContractDetailsEventArgs(this) {
+          RequestId = reqId,
+          ContractDetails = contract
+        });
     }
 
     protected void OnManagedAccounts(string accountList) {}
@@ -882,9 +887,23 @@ namespace Daemaged.IBNet.Client
     }
     private void OnContractDetailsEnd(int reqId)
     {
+      if (ContractDetails == null)
+        return;
+
+      ContractDetails(this, new TWSContractDetailsEventArgs(this) {
+        RequestId = reqId,
+        ContractDetails = null,
+      });
     }
     private void OnOpenOrderEnd()
     {
+      if (OpenOrder == null)
+        return;
+
+      OpenOrder(this, new TWSOpenOrderEventArgs(this) {
+        Contract = null,
+        Order = null,
+      });
     }
     private void OnAccountDownloadEnd(string accountName)
     {
@@ -909,18 +928,32 @@ namespace Daemaged.IBNet.Client
     #endregion
 
     #region Synchronized Request Wrappers
-
-    public IBContractDetails GetContractDetails(IBContract contract)
+#if NET_4_5
+    public async Task<IList<IBContractDetails>> GetContractDetailsAsync(IBContract c)
     {
-      var are = new AutoResetEvent(false);
-      _internalDetailRequests.Add(contract, new KeyValuePair<AutoResetEvent, IBContractDetails>(are, null));
-      RequestContractDetails(contract);
-      WaitHandle.WaitAny(new WaitHandle[] {are}, DEFAULT_WAIT_TIMEOUT, false);
-      var ret = _internalDetailRequests[contract].Value;
-      _internalDetailRequests.Remove(contract);
-      return ret;
+      var id = -1;
+      var results = new List<IBContractDetails>();
+      var completed = new TaskCompletionSource<object>();
+      EventHandler<TWSContractDetailsEventArgs> receiveContractDetails = (o, e) =>
+      {
+        if (e.RequestId != id)
+          return;
+
+        if (e.ContractDetails == null)
+          completed.SetResult(null);
+        else
+          results.Add(e.ContractDetails);
+      };
+      
+      ContractDetails += receiveContractDetails;
+      id = RequestContractDetails(c);
+      await completed.Task;
+      ContractDetails -= receiveContractDetails;
+      return results;
     }
 
+
+#endif
     #endregion
 
     #region Raw Server Mesage Processing
@@ -934,8 +967,8 @@ namespace Daemaged.IBNet.Client
       var canAutoExecute = (version >= 3) ? _enc.DecodeInt() : 0;      
       OnTickPrice(reqId, tickType, price, size, canAutoExecute);
 
-      // Contorary to standard IB socket implementation
-      // I will no go on with the supitidy of simulating TickSize
+      // Contrary to standard IB socket implementation
+      // I will no go on with the stupidity of simulating TickSize
       // events when this client library is obviously written
       // to support the combined tick price + size messages
     }
@@ -1328,7 +1361,7 @@ namespace Daemaged.IBNet.Client
           Summary = {
               Symbol = _enc.DecodeString(),
               SecurityType = _enc.DecodeEnum<IBSecurityType>(),
-              Expiry = DateTime.ParseExact(_enc.DecodeString(), IB_EXPIRY_DATE_FORMAT, CultureInfo.InvariantCulture),
+              Expiry = DecodeIBExpiry(_enc),
               Strike = _enc.DecodeDouble(),
               Right = _enc.DecodeString(),
               Exchange = _enc.DecodeString(),
@@ -1337,7 +1370,7 @@ namespace Daemaged.IBNet.Client
             },
           MarketName = _enc.DecodeString(),
           TradingClass = _enc.DecodeString(),
-          Conid = _enc.DecodeInt(),
+          ContractId = _enc.DecodeInt(),
           MinTick = _enc.DecodeDouble(),
           Multiplier = _enc.DecodeString(),
           OrderTypes = _enc.DecodeString(),
@@ -1375,6 +1408,14 @@ namespace Daemaged.IBNet.Client
         }
       }
       OnContractDetails(reqId, contractDetails);
+    }
+
+    private static DateTime? DecodeIBExpiry(ITWSEncoding enc)
+    {
+      var v = enc.DecodeString();
+      return String.IsNullOrEmpty(v)
+               ? (DateTime?) null
+               : DateTime.ParseExact(v, IB_EXPIRY_DATE_FORMAT, CultureInfo.InvariantCulture);
     }
 
     private void ProcessExecutionData()
@@ -1530,7 +1571,7 @@ namespace Daemaged.IBNet.Client
         },
         MarketName = _enc.DecodeString(),
         TradingClass = _enc.DecodeString(),
-        Conid = _enc.DecodeInt(),
+        ContractId = _enc.DecodeInt(),
         MinTick = _enc.DecodeDouble(),
         OrderTypes = _enc.DecodeString(),
         ValidExchanges = _enc.DecodeString()
@@ -1901,7 +1942,7 @@ namespace Daemaged.IBNet.Client
 
           _enc.Encode(contract.Symbol);
           _enc.Encode(contract.SecurityType.ToString());
-          _enc.Encode(contract.Expiry.ToString(IB_EXPIRY_DATE_FORMAT));
+          _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
           _enc.Encode(contract.Strike);
           _enc.Encode(contract.Right);
           if (ServerInfo.Version >= 15)
@@ -2291,7 +2332,7 @@ namespace Daemaged.IBNet.Client
         _enc.Encode(reqId);
         _enc.Encode(contract.Symbol);
         _enc.Encode(contract.SecurityType.ToString());
-        _enc.Encode(contract.Expiry.ToString(IB_DATE_FORMAT));
+        _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
         _enc.Encode(contract.Strike);
         _enc.Encode(contract.Right);
         _enc.Encode(contract.Multiplier);
@@ -2351,7 +2392,7 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(requestId);
           _enc.Encode(contract.Symbol);
           _enc.Encode(contract.SecurityType);
-          _enc.Encode(contract.Expiry.ToString(IB_EXPIRY_DATE_FORMAT));
+          _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
           _enc.Encode(contract.Strike);
           _enc.Encode(contract.Right);
           _enc.Encode(contract.Multiplier);
@@ -2394,7 +2435,7 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-    public virtual int RequestMarketData(IBContract contract, IList<IBGenericTickType> genericTickList, bool snapshot = false)
+    public virtual int RequestMarketData(IBContract contract, IList<IBGenericTickType> genericTickList = null, bool snapshot = false)
     {
       lock (this) {
         if (!IsConnected)
@@ -2423,7 +2464,7 @@ namespace Daemaged.IBNet.Client
           
           _enc.Encode(contract.Symbol);
           _enc.Encode(contract.SecurityType);
-          _enc.Encode(contract.Expiry != DateTime.MinValue ? contract.Expiry.ToString(IB_EXPIRY_DATE_FORMAT) : "");
+          _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
           _enc.Encode(contract.Strike);
           _enc.Encode(contract.Right);
           if (ServerInfo.Version >= 15)
@@ -2471,7 +2512,7 @@ namespace Daemaged.IBNet.Client
 
           // If we got to here without choking on something
           // we update the request registry
-          _marketDataRecords.Add(reqId, new TWSMarketDataSnapshot(contract));
+          _marketDataRecords.Add(reqId, new TWSMarketDataSnapshot(contract, reqId));
 
           if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SNAPSHOT_MKT_DATA)
             _enc.Encode(snapshot);
@@ -2718,7 +2759,7 @@ namespace Daemaged.IBNet.Client
         _enc.Encode(contract.ContractId);
         _enc.Encode(contract.Symbol);
         _enc.Encode(contract.SecurityType);
-        _enc.Encode(contract.Expiry);
+        _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
         _enc.Encode(contract.Strike);
         _enc.Encode(contract.Right);
         _enc.Encode(contract.Multiplier);
@@ -2779,7 +2820,7 @@ namespace Daemaged.IBNet.Client
         _enc.Encode(contract.ContractId);
         _enc.Encode(contract.Symbol);
         _enc.Encode(contract.SecurityType);
-        _enc.Encode(contract.Expiry);
+        _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
         _enc.Encode(contract.Strike);
         _enc.Encode(contract.Right);
         _enc.Encode(contract.Multiplier);
@@ -2860,7 +2901,7 @@ namespace Daemaged.IBNet.Client
 
         _enc.Encode(contract.Symbol);
         _enc.Encode(contract.SecurityType);
-        _enc.Encode(contract.Expiry.ToString(IB_EXPIRY_DATE_FORMAT));
+        _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
         _enc.Encode(contract.Strike);
         _enc.Encode(contract.Right);
         _enc.Encode(contract.Multiplier);
@@ -2895,7 +2936,7 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(reqId);
           _enc.Encode(contract.Symbol);
           _enc.Encode(contract.SecurityType);
-          _enc.Encode(contract.Expiry.ToString(IB_EXPIRY_DATE_FORMAT));
+          _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
           _enc.Encode(contract.Strike);
           _enc.Encode(contract.Right);
           if (ServerInfo.Version >= 15)
@@ -3105,7 +3146,7 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(contract.ContractId);
         _enc.Encode(contract.Symbol);
         _enc.Encode(contract.SecurityType);
-        _enc.Encode(contract.Expiry.ToString(IB_EXPIRY_DATE_FORMAT));
+        _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
         _enc.Encode(contract.Strike);
         _enc.Encode(contract.Right);
         if (ServerInfo.Version >= 15) {

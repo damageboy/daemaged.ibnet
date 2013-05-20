@@ -284,7 +284,8 @@ namespace Daemaged.IBNet
         _stream.Write(bytes, 0, bytes.Length);
       }
 
-      _stream.WriteByte(0);      
+      _stream.WriteByte(0);
+      _stream.Flush();
     }
 
     public virtual string DecodeString()

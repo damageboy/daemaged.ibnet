@@ -326,7 +326,7 @@ namespace Daemaged.IBNet
 
     public string Symbol { get; set; }
     public IBSecurityType SecurityType { get; set; }
-    public DateTime Expiry { get; set; }
+    public DateTime? Expiry { get; set; }
     public double Strike { get; set; }
     public string Right { get; set; }
     public string Multiplier { get; set; }
@@ -409,14 +409,14 @@ namespace Daemaged.IBNet
     {
       Summary = new IBContract();
       ValidExchanges = OrderTypes = Multiplier = TradingClass = MarketName = null;
-      PriceMagnifier = Conid = 0;
+      PriceMagnifier = ContractId = 0;
       MinTick = 0;
     }
 
     public IBContract Summary { get; set; }
     public string MarketName { get; set; }
     public string TradingClass { get; set; }
-    public int Conid { get; set; }
+    public int ContractId { get; set; }
     public double MinTick { get; set; }
     public string Multiplier { get; set; }
     public int PriceMagnifier { get; set; }

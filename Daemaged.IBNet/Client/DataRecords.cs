@@ -52,9 +52,10 @@ namespace Daemaged.IBNet.Client
     private int _volume;
     private int _volumeDiff;
 
-    public TWSMarketDataSnapshot(IBContract contract)
+    public TWSMarketDataSnapshot(IBContract contract, int reqId)
     {
       Contract = contract;
+      RequestId = reqId;
     }
 
     public TWSMarketDataSnapshot(TWSMarketDataSnapshot that)
@@ -111,6 +112,7 @@ namespace Daemaged.IBNet.Client
     public double PVDividend { get; set; }
     public double ModelPrice { get; set; }
     public DateTime LastTimeStamp { get; set; }
+    public int RequestId { get; set; }
 
     public int Volume
     {
