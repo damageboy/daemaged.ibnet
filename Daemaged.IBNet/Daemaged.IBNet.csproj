@@ -91,6 +91,7 @@
     <Compile Include="Util\CompiledStaticDictionary.cs" />
     <Compile Include="Util\CompiledStaticSet.cs" />
     <Compile Include="Util\Emum.cs" />
+    <Compile Include="Util\ProgressiveTaskCompletionSource.cs" />
     <Compile Include="Util\StaticMapperCompiler.cs" />
     <Compile Include="Util\StaticStringDictionaryComparer.cs" />
   </ItemGroup>

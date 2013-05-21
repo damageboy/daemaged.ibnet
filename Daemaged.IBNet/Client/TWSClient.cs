@@ -41,6 +41,7 @@
 #endregion
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -51,6 +52,8 @@ using System.Text;
 using System.Threading;
 #if NET_4_5
 using System.Threading.Tasks;
+using Daemaged.IBNet.Util;
+
 #endif
 
 namespace Daemaged.IBNet.Client
@@ -63,13 +66,15 @@ namespace Daemaged.IBNet.Client
     private const string IB_DATE_FORMAT = "yyyyMMdd  HH:mm:ss";
     private const string IB_EXPIRY_DATE_FORMAT = "yyyyMMdd";
     private const string IB_HISTORICAL_COMPLETED = "finished";
-    private readonly Dictionary<IBContract, KeyValuePair<AutoResetEvent, IBContractDetails>> _internalDetailRequests;
-    private readonly Dictionary<int, OrderRecord> _orderRecords;
+    private readonly Dictionary<int, OrderRecord> _orderRecords = new Dictionary<int, OrderRecord>();
+#if NET_4_5
+    private readonly IDictionary<int, IFaultable> _asyncCalls = new ConcurrentDictionary<int, IFaultable>();
+#endif
     private int _clientId;
     private bool _doWork;
     protected ITWSEncoding _enc;
     private IPEndPoint _endPoint;
-    protected Dictionary<int, TWSMarketDataSnapshot> _marketDataRecords;
+    protected Dictionary<int, TWSMarketDataSnapshot> _marketDataRecords = new Dictionary<int, TWSMarketDataSnapshot>();
     private int _nextValidId;
     private Dictionary<string, int> _orderIds;
     private bool _reconnect;
@@ -94,11 +99,6 @@ namespace Daemaged.IBNet.Client
       _twsTime = String.Empty;
       _nextValidId = 0;
 
-      //_historicalDataRecords = new Dictionary<int, TWSMarketDataSnapshot>();
-      _marketDataRecords = new Dictionary<int, TWSMarketDataSnapshot>();
-      //_marketDepthRecords = new Dictionary<int, TWSMarketDataSnapshot>();
-      _orderRecords = new Dictionary<int, OrderRecord>();
-      _internalDetailRequests = new Dictionary<IBContract, KeyValuePair<AutoResetEvent, IBContractDetails>>();
       _orderIds = new Dictionary<string, int>();
 
       ClientInfo = new TWSClientInfo();
@@ -426,6 +426,16 @@ namespace Daemaged.IBNet.Client
       if (StatusChanged == null) return;
       StatusChanged(this, new TWSClientStatusEventArgs(this, status));
     }
+
+    protected virtual void OnException(Exception e)
+    {
+      if (ExceptionOccured == null)
+        return;
+      ExceptionOccured(this, new TWSClientExceptionEventArgs(this) {
+        Exception = e,
+      });
+    }
+
 
     protected virtual void OnError(TWSError error)
     {
@@ -933,26 +943,15 @@ namespace Daemaged.IBNet.Client
     {
       var id = -1;
       var results = new List<IBContractDetails>();
-      var completed = new TaskCompletionSource<object>();
-      EventHandler<TWSContractDetailsEventArgs> receiveContractDetails = (o, e) =>
-      {
-        if (e.RequestId != id)
-          return;
+      var completed = new ProgressiveTaskCompletionSource<List<IBContractDetails>> {Value = results};
 
-        if (e.ContractDetails == null)
-          completed.SetResult(null);
-        else
-          results.Add(e.ContractDetails);
-      };
-      
-      ContractDetails += receiveContractDetails;
-      id = RequestContractDetails(c);
+      id = NextValidId;
+      _asyncCalls.Add(id, completed);      
+      RequestContractDetails(c, id);      
       await completed.Task;
-      ContractDetails -= receiveContractDetails;
+      _asyncCalls.Remove(id);
       return results;
     }
-
-
 #endif
     #endregion
 
@@ -961,11 +960,21 @@ namespace Daemaged.IBNet.Client
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
-      var tickType = _enc.DecodeEnum<IBTickType>();
-      var price = _enc.DecodeDouble();
-      var size = (version >= 2) ? _enc.DecodeInt() : 0;
-      var canAutoExecute = (version >= 3) ? _enc.DecodeInt() : 0;      
-      OnTickPrice(reqId, tickType, price, size, canAutoExecute);
+#if NET_4_5
+        ProgressiveTaskCompletionSource<object> completion = null;
+        IFaultable tmp;
+        if (_asyncCalls.TryGetValue(reqId, out tmp)) {
+          completion = (ProgressiveTaskCompletionSource<object>) tmp;
+          // Just signal the async version that the subscription is OK for sure
+          completion.SetResult(null);
+        }
+#endif
+
+        var tickType = _enc.DecodeEnum<IBTickType>();
+        var price = _enc.DecodeDouble();
+        var size = (version >= 2) ? _enc.DecodeInt() : 0;
+        var canAutoExecute = (version >= 3) ? _enc.DecodeInt() : 0;
+        OnTickPrice(reqId, tickType, price, size, canAutoExecute);
 
       // Contrary to standard IB socket implementation
       // I will no go on with the stupidity of simulating TickSize
@@ -977,6 +986,15 @@ namespace Daemaged.IBNet.Client
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
+#if NET_4_5
+      ProgressiveTaskCompletionSource<object> completion = null;
+      IFaultable tmp;
+      if (_asyncCalls.TryGetValue(reqId, out tmp)) {
+        completion = (ProgressiveTaskCompletionSource<object>)tmp;
+        // Just signal the async version that the subscription is OK for sure
+        completion.SetResult(null);
+      }
+#endif
       var tickType = _enc.DecodeEnum<IBTickType>();
       var size = _enc.DecodeInt();
       OnTickSize(reqId, tickType, size);
@@ -999,6 +1017,48 @@ namespace Daemaged.IBNet.Client
       OnOrderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld);
     }
 
+    private void ProcessTickString()
+    {
+      var version = _enc.DecodeInt();
+      var reqId = _enc.DecodeInt();
+#if NET_4_5
+      ProgressiveTaskCompletionSource<object> completion = null;
+      IFaultable tmp;
+      if (_asyncCalls.TryGetValue(reqId, out tmp))
+      {
+        completion = (ProgressiveTaskCompletionSource<object>)tmp;
+        // Just signal the async version that the subscription is OK for sure
+        completion.SetResult(null);
+      }
+#endif
+
+      var tickType = _enc.DecodeEnum<IBTickType>();
+      var value = _enc.DecodeString();
+
+      OnTickString(reqId, tickType, value);
+    }
+
+    private void ProcessTickGeneric()
+    {
+      var version = _enc.DecodeInt();
+      var reqId = _enc.DecodeInt();
+#if NET_4_5
+      ProgressiveTaskCompletionSource<object> completion = null;
+      IFaultable tmp;
+      if (_asyncCalls.TryGetValue(reqId, out tmp))
+      {
+        completion = (ProgressiveTaskCompletionSource<object>)tmp;
+        // Just signal the async version that the subscription is OK for sure
+        completion.SetResult(null);
+      }
+#endif
+
+      var tickType = _enc.DecodeEnum<IBTickType>();
+      var value = _enc.DecodeDouble();
+      OnTickGeneric(reqId, tickType, value);
+    }
+
+
     private void ProcessErrorMessage()
     {
       var version = _enc.DecodeInt();
@@ -1007,10 +1067,34 @@ namespace Daemaged.IBNet.Client
         OnError(message);
       }
       else {
-        var id = _enc.DecodeInt();
-        var errorCode = _enc.DecodeInt();
-        var message = _enc.DecodeString();
-        OnError(id, new TWSError(errorCode, message), String.Empty);
+#if NET_4_5
+        ProgressiveTaskCompletionSource<object> completion = null;
+
+        try
+        {
+#endif
+          var id = _enc.DecodeInt();
+#if NET_4_5
+          IFaultable tmp;
+          if (_asyncCalls.TryGetValue(id, out tmp))
+            completion = (ProgressiveTaskCompletionSource<object>) tmp;
+#endif
+          var errorCode = _enc.DecodeInt();
+          var message = _enc.DecodeString();
+          var twsError = new TWSError(errorCode, message);
+#if NET_4_5
+          if (completion != null)
+            completion.SetException(new TWSServerException(twsError));
+          else
+#endif
+            OnError(id, twsError, String.Empty);
+#if NET_4_5
+        } catch (Exception e) {
+          if (completion != null)
+            completion.SetException(e);
+          throw;
+        }
+#endif
       }
     }
 
@@ -1352,22 +1436,32 @@ namespace Daemaged.IBNet.Client
 
     private void ProcessContractData()
     {
-      var version = _enc.DecodeInt();
-      var reqId = -1;
-      if (version >= 3)
-        reqId = _enc.DecodeInt();
-      
-      var contractDetails = new IBContractDetails {
+#if NET_4_5
+      ProgressiveTaskCompletionSource<List<IBContractDetails>> completion = null;
+
+      try
+      {
+#endif
+        var version = _enc.DecodeInt();
+        var reqId = -1;
+        if (version >= 3)
+          reqId = _enc.DecodeInt();
+#if NET_4_5
+        IFaultable tmp;
+        if (_asyncCalls.TryGetValue(reqId, out tmp))
+          completion = (ProgressiveTaskCompletionSource<List<IBContractDetails>>)tmp;
+#endif
+        var contractDetails = new IBContractDetails {
           Summary = {
-              Symbol = _enc.DecodeString(),
-              SecurityType = _enc.DecodeEnum<IBSecurityType>(),
-              Expiry = DecodeIBExpiry(_enc),
-              Strike = _enc.DecodeDouble(),
-              Right = _enc.DecodeString(),
-              Exchange = _enc.DecodeString(),
-              Currency = _enc.DecodeString(),
-              LocalSymbol = _enc.DecodeString()
-            },
+            Symbol = _enc.DecodeString(),
+            SecurityType = _enc.DecodeEnum<IBSecurityType>(),
+            Expiry = DecodeIBExpiry(_enc),
+            Strike = _enc.DecodeDouble(),
+            Right = _enc.DecodeString(),
+            Exchange = _enc.DecodeString(),
+            Currency = _enc.DecodeString(),
+            LocalSymbol = _enc.DecodeString()
+          },
           MarketName = _enc.DecodeString(),
           TradingClass = _enc.DecodeString(),
           ContractId = _enc.DecodeInt(),
@@ -1376,38 +1470,50 @@ namespace Daemaged.IBNet.Client
           OrderTypes = _enc.DecodeString(),
           ValidExchanges = _enc.DecodeString()
         };
-      if (version >= 2)
-        contractDetails.PriceMagnifier = _enc.DecodeInt();
+        if (version >= 2)
+          contractDetails.PriceMagnifier = _enc.DecodeInt();
 
-      if (version >= 4)
-        contractDetails.UnderlyingContractId = _enc.DecodeInt();
+        if (version >= 4)
+          contractDetails.UnderlyingContractId = _enc.DecodeInt();
 
-      if (version >= 5) {
-        contractDetails.LongName = _enc.DecodeString();
-        contractDetails.Summary.PrimaryExchange = _enc.DecodeString();
-      }
-      if (version >= 6) {
-        contractDetails.ContractMonth = _enc.DecodeString();
-        contractDetails.Industry = _enc.DecodeString();
-        contractDetails.Category = _enc.DecodeString();
-        contractDetails.Subcategory = _enc.DecodeString();
-        contractDetails.TimeZoneId = _enc.DecodeString();
-        contractDetails.TradingHours = _enc.DecodeString();
-        contractDetails.LiquidHours = _enc.DecodeString();
-      }
-      if (version >= 8) {
-        contractDetails.EvRule = _enc.DecodeString();
-        contractDetails.EvMultiplier = _enc.DecodeDouble();
-      }
-      if (version >= 7) {
-        var secIdListCount = _enc.DecodeInt();
-        if (secIdListCount > 0) {
-          contractDetails.SecIdList = new List<IBTagValue>(secIdListCount);
-          for (var i = 0; i < secIdListCount; ++i)
-            contractDetails.SecIdList.Add(new IBTagValue { Tag = _enc.DecodeString(), Value = _enc.DecodeString() });            
+        if (version >= 5) {
+          contractDetails.LongName = _enc.DecodeString();
+          contractDetails.Summary.PrimaryExchange = _enc.DecodeString();
         }
+        if (version >= 6) {
+          contractDetails.ContractMonth = _enc.DecodeString();
+          contractDetails.Industry = _enc.DecodeString();
+          contractDetails.Category = _enc.DecodeString();
+          contractDetails.Subcategory = _enc.DecodeString();
+          contractDetails.TimeZoneId = _enc.DecodeString();
+          contractDetails.TradingHours = _enc.DecodeString();
+          contractDetails.LiquidHours = _enc.DecodeString();
+        }
+        if (version >= 8) {
+          contractDetails.EvRule = _enc.DecodeString();
+          contractDetails.EvMultiplier = _enc.DecodeDouble();
+        }
+        if (version >= 7) {
+          var secIdListCount = _enc.DecodeInt();
+          if (secIdListCount > 0) {
+            contractDetails.SecIdList = new List<IBTagValue>(secIdListCount);
+            for (var i = 0; i < secIdListCount; ++i)
+              contractDetails.SecIdList.Add(new IBTagValue { Tag = _enc.DecodeString(), Value = _enc.DecodeString() });
+          }
+        }
+#if NET_4_5
+        if (completion != null)
+          completion.Value.Add(contractDetails);
+        else
+#endif
+          OnContractDetails(reqId, contractDetails);          
+#if NET_4_5
+      } catch (Exception e) {
+        if (completion != null)          
+          completion.SetException(e);
+        throw;
       }
-      OnContractDetails(reqId, contractDetails);
+#endif
     }
 
     private static DateTime? DecodeIBExpiry(ITWSEncoding enc)
@@ -1721,25 +1827,6 @@ namespace Daemaged.IBNet.Client
                 impliedFuturesPrice, holdDays, futureExpiry, dividendImpact, dividendsToExpiry);
     }
 
-    private void ProcessTickString()
-    {
-      var version = _enc.DecodeInt();
-      var reqId = _enc.DecodeInt();
-      var tickType = _enc.DecodeEnum<IBTickType>();
-      var value = _enc.DecodeString();
-
-      OnTickString(reqId, tickType, value);
-    }
-
-    private void ProcessTickGeneric()
-    {
-      var version = _enc.DecodeInt();
-      var reqId = _enc.DecodeInt();
-      var tickType = _enc.DecodeEnum<IBTickType>();
-      var value = _enc.DecodeDouble();
-      OnTickGeneric(reqId, tickType, value);
-    }
-
     private void ProcessCurrentTime()
     {
       var version = _enc.DecodeInt();
@@ -1772,9 +1859,32 @@ namespace Daemaged.IBNet.Client
 
     private void ProcessContractDataEnd()
     {
-      var version = _enc.DecodeInt();
-      var reqId = _enc.DecodeInt();
-      OnContractDetailsEnd(reqId);
+#if NET_4_5
+      ProgressiveTaskCompletionSource<List<IBContractDetails>> completion = null;
+
+      try
+      {
+#endif
+        var version = _enc.DecodeInt();
+        var reqId = _enc.DecodeInt();
+#if NET_4_5
+        IFaultable tmp;
+        if (_asyncCalls.TryGetValue(reqId, out tmp))
+          completion = (ProgressiveTaskCompletionSource<List<IBContractDetails>>) tmp;
+
+        if (completion != null)
+          completion.SetCompleted();
+        else
+#endif
+        OnContractDetailsEnd(reqId);
+          
+#if NET_4_5
+      } catch (Exception e) {
+        if (completion != null)
+          completion.SetException(e);
+        throw;
+      }
+#endif
     }
 
     private void ProcessOpenOrderEnd()
@@ -1857,8 +1967,11 @@ namespace Daemaged.IBNet.Client
         }
       }
       catch (Exception e) {
-        OnError(e.ToString());
-        return;
+        OnException(e);
+#if NET_4_5
+        foreach (var f in _asyncCalls.Values)
+          f.TrySetException(new TWSDisconnectedException());
+#endif        
       }
       finally {
         Disconnect();
@@ -2434,8 +2547,30 @@ namespace Daemaged.IBNet.Client
         return requestId;
       }
     }
+#if NET_4_5
+    public async Task<int> RequestMarketDataAsync(IBContract contract, IList<IBGenericTickType> tickList = null, bool snapshot = false)
+    {
+      var completion = new ProgressiveTaskCompletionSource<object>();
+      var id = NextValidId;
+      _asyncCalls.Add(id, completion);
+      RequestMarketData(contract, tickList, snapshot, id);
+      
 
-    public virtual int RequestMarketData(IBContract contract, IList<IBGenericTickType> genericTickList = null, bool snapshot = false)
+      int timeout = 1000;
+      if (await Task.WhenAny(completion.Task, Task.Delay(timeout)) == completion.Task) {
+        if (completion.Task.IsFaulted)
+          throw completion.Task.Exception;
+      }
+
+      // We might be here because there was no market-data or error within the timeout
+      // At any rate, we consider this to be a success
+      // IB is shit, this is the best we can do
+      _asyncCalls.Remove(id);
+      return id;
+    }
+#endif
+
+    public virtual int RequestMarketData(IBContract contract, IList<IBGenericTickType> genericTickList = null, bool snapshot = false, int reqId = 0)
     {
       lock (this) {
         if (!IsConnected)
@@ -2453,7 +2588,8 @@ namespace Daemaged.IBNet.Client
             throw new TWSOutdatedException();
 
         const int reqVersion = 9;
-        var reqId = NextValidId;
+        if (reqId == 0)
+          reqId = NextValidId;
         
         try {
           _enc.Encode(ServerMessage.RequestMarketData);
@@ -3114,7 +3250,7 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-    public virtual int RequestContractDetails(IBContract contract)
+    public virtual int RequestContractDetails(IBContract contract, int requestId = 0)
     {
       // not connected?
       if (!IsConnected)
@@ -3135,7 +3271,8 @@ namespace Daemaged.IBNet.Client
         _enc.Encode(ServerMessage.RequestContractData);
         _enc.Encode(reqVersion);
 
-        var requestId = NextValidId;
+        if (requestId == 0)
+          requestId = NextValidId;
 
         if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_DATA_CHAIN)
         {
@@ -3218,7 +3355,7 @@ namespace Daemaged.IBNet.Client
 
     private int NextValidId
     {
-      get { return _nextValidId++; }
+      get { return Interlocked.Increment(ref _nextValidId); }
     }
 
     public bool IsConnected
@@ -3277,6 +3414,7 @@ namespace Daemaged.IBNet.Client
     public TWSServerInfo ServerInfo { get; private set; }
     public event EventHandler<TWSClientStatusEventArgs> StatusChanged;
     public event EventHandler<TWSClientErrorEventArgs> Error;
+    public event EventHandler<TWSClientExceptionEventArgs> ExceptionOccured;
     public event EventHandler<TWSTickPriceEventArgs> TickPrice;
     public event EventHandler<TWSTickSizeEventArgs> TickSize;
     public event EventHandler<TWSTickStringEventArgs> TickString;
@@ -3302,5 +3440,16 @@ namespace Daemaged.IBNet.Client
 
   public class NotConnectedException : Exception { }
 
-  internal class TWSOutdatedException : Exception { }
+  public class TWSOutdatedException : Exception { }
+  public class TWSDisconnectedException : Exception { }
+  public class TWSServerException : Exception
+  {
+    public TWSServerException(TWSError twsError)
+    {
+      TWSError = twsError;
+    }
+    public TWSError TWSError { get; private set; }
+    public override string Message { get { return TWSError.Message; } }
+  }
+
 }

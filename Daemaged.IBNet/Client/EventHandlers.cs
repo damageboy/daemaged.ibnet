@@ -84,6 +84,14 @@ namespace Daemaged.IBNet.Client
     public string Message { get; set; }
   }
 
+  public class TWSClientExceptionEventArgs : TWSClientEventArgs
+  {
+    public TWSClientExceptionEventArgs(TWSClient client) : base(client) { }
+
+    public Exception Exception { get; set; }
+  }
+
+
   /// <summary>
   /// Tick Price Event Args
   /// </summary>
