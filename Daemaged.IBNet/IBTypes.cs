@@ -314,6 +314,102 @@ namespace Daemaged.IBNet
     }
   }
 
+  public class IBOrderStatusReport
+  {
+    /// <summary>
+    /// The order Id that was specified previously in the call to PlaceOrder().
+    /// </summary>
+    /// <value>
+    /// The order id.
+    /// </value>
+    public int OrderId { get; internal set; }
+
+    /// <summary>
+    /// The order status.
+    /// </summary>
+    /// <remarks>Possible values include:
+    /// <list type="table">
+    /// <listheader>
+    /// <term>Status</term>
+    /// <description>Description</description>
+    /// </listheader>
+    /// <item>
+    /// <term>PendingSubmit</term>
+    /// <description>indicates that you have transmitted the order, but have not yet received confirmation that it has been accepted by the order destination. This order status is not sent by TWS and should be explicitly set by the API developer when an order is submitted.</description>
+    /// </item>
+    /// <item>
+    /// <term>PendingCancel</term>
+    /// <description>Indicates that you have sent a request to cancel the order but have not yet received cancel confirmation from the order destination. At this point, your order is not confirmed canceled. You may still receive an execution while your cancellation request is pending. This order status is not sent by TWS and should be explicitly set by the API developer when an order is canceled.</description>
+    /// </item>
+    /// <item>
+    /// <term>PreSubmitted</term>
+    /// <description>Indicates that a simulated order type has been accepted by the IB system and that this order has yet to be elected. The order is held in the IB system (and the status remains DARK BLUE) until the election criteria are met. At that time the order is transmitted to the order destination as specified (and the order status color will change).</description>
+    /// </item>
+    /// <item>
+    /// <term>Submitted</term>
+    /// <description>Indicates that your order has been accepted at the order destination and is working.</description>
+    /// </item>
+    /// <item>
+    /// <term>Cancelled</term>
+    /// <description>Indicates that the balance of your order has been confirmed canceled by the IB system. This could occur unexpectedly when IB or the destination has rejected your order.</description>
+    /// </item>
+    /// <item>
+    /// <term>Filled</term>
+    /// <description>The order has been completely filled.</description>
+    /// </item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="OrderStatus"/>
+    public string Status { get; internal set; }
+
+    /// <summary>
+    /// Specifies the number of shares that have been executed.
+    /// </summary>
+    public int Filled { get; internal set; }
+
+    /// <summary>
+    /// Specifies the number of shares still outstanding.
+    /// </summary>
+    public int Remaining { get; internal set; }
+
+    /// <summary>
+    /// The average price of the shares that have been executed.
+    /// This parameter is valid only if the filled parameter value
+    /// is greater than zero. Otherwise, the price parameter will be zero.
+    /// </summary>
+    public double AvgFillPrice { get; internal set; }
+
+    /// <summary>
+    /// The TWS id used to identify orders. Remains the same over TWS sessions.
+    /// </summary>
+    public int PermId { get; internal set; }
+
+    /// <summary>
+    /// The order ID of the parent order, used for bracket and auto trailing stop orders.
+    /// </summary>
+    public int ParentId { get; internal set; }
+
+    /// <summary>
+    /// The last price of the shares that have been executed. This parameter is valid
+    /// only if the filled parameter value is greater than zero. Otherwise, the price parameter will be zero.
+    /// </summary>
+    public double LastFillPrice { get; internal set; }
+
+    /// <summary>
+    /// The Id of the client (or TWS) that placed the order.
+    /// The TWS orders have a fixed clientId and orderId of 0 that distinguishes them from API orders.
+    /// </summary>
+    public int ClientId { get; internal set; }
+
+    /// <summary>
+    /// This field is used to identify an order held when TWS is trying to locate shares for a short sell.
+    /// The value used to indicate this is 'locate'.
+    /// </summary>
+    /// <remarks>This field is supported starting with TWS release 872.</remarks>
+
+    public string WhyHeld { get; internal set; }
+  }
+
   public class IBContract
   {
     public IBContract()
@@ -448,18 +544,14 @@ namespace Daemaged.IBNet
     public int UnderlyingContractId { get; set; }
   }
 
-  public class IBExecution
+  public class IBExecutionDetails
   {
-    public IBExecution()
-    {
-    }
-
     public string AcctNumber { get; set; }
     public int ClientId { get; set; }
     public string Exchange { get; set; }
-    public string ExecID { get; set; }
+    public string ExecId { get; set; }
     public int Liquidation { get; set; }
-    public int OrderID { get; set; }
+    public int OrderId { get; set; }
     public int PermId { get; set; }
     public double Price { get; set; }
     public int Shares { get; set; }

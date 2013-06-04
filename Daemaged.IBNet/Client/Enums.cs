@@ -58,4 +58,12 @@ namespace Daemaged.IBNet.Client
     Disconnected,
     Connected
   }
+
+  public enum IBOrderChangeType
+  {
+    OpenOrder,
+    OrderStatus,
+    ExecutionDetails,
+    Error,
+  }
 }

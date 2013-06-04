@@ -439,24 +439,36 @@ namespace Daemaged.IBNet.Client
 
     protected virtual void OnError(TWSError error)
     {
-      OnError(TWSErrors.NO_VALID_ID, error);
+      OnError(TWSErrors.NO_VALID_ID, error);      
     }
 
     protected virtual void OnError(int reqId, TWSError error, string extraMessage = null)
     {
-      if (Error == null) return;
-      TWSMarketDataSnapshot snapshot;
-      IBContract contract = null;
+      if (Error != null) {
+        TWSMarketDataSnapshot snapshot;
+        IBContract contract = null;
 
-      if (_marketDataRecords.TryGetValue(reqId, out snapshot))
-        contract = snapshot.Contract;
+        if (_marketDataRecords.TryGetValue(reqId, out snapshot))
+          contract = snapshot.Contract;
 
-      Error(this, new TWSClientErrorEventArgs(this) {
-        RequestId = reqId, 
-        Contract = contract, 
-        Error = error,
-        Message = extraMessage,
-      });
+        Error(this, new TWSClientErrorEventArgs(this) {
+          RequestId = reqId,
+          Contract = contract,
+          Error = error,
+          Message = extraMessage,
+        });
+      }
+
+
+      if (OrderChanged != null) {
+        OrderRecord or;
+        if (_orderRecords.TryGetValue(reqId, out or)) {
+          OrderChanged(this, new TWSOrderChangedEventArgs(this, or) {
+            ChangeType = IBOrderChangeType.Error,
+            Error = error,
+          });
+        }
+      }
     }
 
     protected void OnError(string message)
@@ -748,23 +760,22 @@ namespace Daemaged.IBNet.Client
         OnMarketData(record, tickType);
     }
 
-    protected void OnOrderStatus(int orderId, string status, int filled, int remaining,
-                                 double avgFillPrice, int permId, int parentId,
-                                 double lastFillPrice, int clientId, string whyHeld)
+    protected void OnOrderStatus(int orderId, IBOrderStatusReport status)
     {
       if (OrderStatus != null)
         OrderStatus(this, new TWSOrderStatusEventArgs(this) {
-           OrderId = orderId, 
-           Status = status, 
-           Filled = filled, 
-           Remaining = remaining,
-           AvgFillPrice = avgFillPrice, 
-           PermId = permId, 
-           ParentId = parentId, 
-           LastFillPrice = lastFillPrice,
-           ClientId = clientId,
-           WhyHeld = whyHeld
+          Status = status,
         });
+
+      if (OrderChanged != null) {
+        OrderRecord or;
+        if (_orderRecords.TryGetValue(orderId, out or)) {
+          OrderChanged(this, new TWSOrderChangedEventArgs(this, or) {
+            ChangeType = IBOrderChangeType.Error,
+            Status = status,
+          });
+        }
+      }
     }
 
     protected void OnOpenOrder(int orderId, IBOrder order, IBContract contract, IBOrderState orderState)
@@ -775,6 +786,20 @@ namespace Daemaged.IBNet.Client
           Order = order, 
           Contract = contract            
         });
+
+      if (OrderChanged != null) {
+        OrderRecord or;
+        if (_orderRecords.TryGetValue(orderId, out or))
+        {
+          OrderChanged(this, new TWSOrderChangedEventArgs(this, or) {
+            ChangeType = IBOrderChangeType.OpenOrder,
+            ReportedContract = contract,
+            OpenOrder = order,
+            OpenOrderStats = orderState
+          });
+        }
+      }
+
     }
 
     protected void OnBondContractDetails(int reqId, IBContractDetails contract)
@@ -835,14 +860,25 @@ namespace Daemaged.IBNet.Client
       });
     }
 
-    protected void OnExecutionDetails(int orderId, IBContract contract, IBExecution execution)
+    protected void OnExecutionDetails(int orderId, IBContract contract, IBExecutionDetails execution)
     {
       if (ExecDetails != null)
-        ExecDetails(this, new TWSExecDetailsEventArgs(this) {
+        ExecDetails(this, new TWSExecutionDetailsEventArgs(this) {
           OrderId = orderId,
           Contract = contract,
           Execution = execution
         });
+
+      if (OrderChanged != null) {
+        OrderRecord or;
+        if (_orderRecords.TryGetValue(orderId, out or)) {
+          OrderChanged(this, new TWSOrderChangedEventArgs(this, or) {
+            ChangeType = IBOrderChangeType.ExecutionDetails,
+            ReportedContract = contract,
+            ExecutionDetails =  execution,
+          });
+        }
+      }
     }
 
     protected void OnMarketDepth(int reqId, int position, IBOperation operation, IBSide side, double price, int size)
@@ -1014,7 +1050,22 @@ namespace Daemaged.IBNet.Client
       var lastFillPrice = (version >= 4) ? _enc.DecodeDouble() : 0;
       var clientId = (version >= 5) ? _enc.DecodeInt() : 0;
       var whyHeld = (version >= 6) ? _enc.DecodeString() : null;
-      OnOrderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld);
+
+      var newStatus = new IBOrderStatusReport {
+        OrderId = orderId,
+        Status = status,
+        Filled = filled,
+        Remaining = remaining,
+        AvgFillPrice = avgFillPrice,
+        PermId = permId,
+        ParentId = parentId,
+        LastFillPrice = lastFillPrice,
+        ClientId = clientId,
+        WhyHeld = whyHeld
+      };
+
+
+      OnOrderStatus(orderId, newStatus);
     }
 
     private void ProcessTickString()
@@ -1547,10 +1598,10 @@ namespace Daemaged.IBNet.Client
       contract.Exchange = _enc.DecodeString();
       contract.Currency = _enc.DecodeString();
       contract.LocalSymbol = _enc.DecodeString();
-      var execution = new IBExecution
+      var execution = new IBExecutionDetails
         {
-          OrderID = orderId,
-          ExecID = _enc.DecodeString(),
+          OrderId = orderId,
+          ExecId = _enc.DecodeString(),
           Time = _enc.DecodeString(),
           AcctNumber = _enc.DecodeString(),
           Exchange = _enc.DecodeString(),
@@ -1994,7 +2045,7 @@ namespace Daemaged.IBNet.Client
         case ClientMessage.TickString:             ProcessTickString();             break;
         case ClientMessage.TickEfp:                ProcessTickEFP();                break;
         case ClientMessage.OrderStatus:            ProcessOrderStatus();            break;
-        case ClientMessage.ErrorMessage:           ProcessErrorMessage();                 break;
+        case ClientMessage.ErrorMessage:           ProcessErrorMessage();           break;
         case ClientMessage.OpenOrder:              ProcessOpenOrder();              break;
         case ClientMessage.AccountValue:           ProcessAccountValue();           break;
         case ClientMessage.PortfolioValue:         ProcessPortfolioValue();         break;
@@ -2326,7 +2377,11 @@ namespace Daemaged.IBNet.Client
           throw;
         }
 
-        _orderRecords.Add(orderId, new OrderRecord(order, contract));
+        _orderRecords.Add(orderId, new OrderRecord {
+          OrderId = orderId,
+          Order = order,
+          Contract = contract,
+        });
         return orderId;
       }
     }
@@ -3429,14 +3484,16 @@ namespace Daemaged.IBNet.Client
     public event EventHandler<TWSScannerDataEventArgs> ScannerData;
     public event EventHandler<TWSScannerParametersEventArgs> ScannerParameters;
     public event EventHandler<TWSUpdatePortfolioEventArgs> UpdatePortfolio;
-    public event EventHandler<TWSExecDetailsEventArgs> ExecDetails;
+    public event EventHandler<TWSExecutionDetailsEventArgs> ExecDetails;
     public event EventHandler<TWSMarketDepthEventArgs> MarketDepth;
     public event EventHandler<TWSMarketDepthEventArgs> MarketDepthL2;
     public event EventHandler<TWSHistoricalDataEventArgs> HistoricalData;
     public event EventHandler<TWSMarketDataEventArgs> MarketData;
     public event EventHandler<TWSRealtimeBarEventArgs> RealtimeBar;
-    
+    public event EventHandler<TWSOrderChangedEventArgs> OrderChanged;
+
   }
+
 
   public class NotConnectedException : Exception { }
 
@@ -3450,6 +3507,13 @@ namespace Daemaged.IBNet.Client
     }
     public TWSError TWSError { get; private set; }
     public override string Message { get { return TWSError.Message; } }
+  }
+
+  internal class OrderRecord
+  {
+    internal int OrderId;
+    internal IBContract Contract;
+    internal IBOrder Order;
   }
 
 }

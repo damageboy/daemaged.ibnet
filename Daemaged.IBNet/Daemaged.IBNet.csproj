@@ -64,7 +64,6 @@
     <Compile Include="BufferedInputStream.cs" />
     <Compile Include="Client\DataRecords.cs" />
     <Compile Include="Client\Enums.cs" />
-    <Compile Include="Client\OrderRecord.cs" />
     <Compile Include="Client\TWSClientSettings.cs" />
     <Compile Include="Client\TWSSocketFactory.cs" />
     <Compile Include="Clock.cs" />

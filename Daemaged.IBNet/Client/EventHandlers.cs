@@ -66,7 +66,9 @@ namespace Daemaged.IBNet.Client
 
   public class TWSClientErrorEventArgs : TWSClientEventArgs
   {
-    public TWSClientErrorEventArgs(TWSClient client) : base(client) {}
+    public TWSClientErrorEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     public IBContract Contract { get; internal set; }
 
@@ -75,6 +77,7 @@ namespace Daemaged.IBNet.Client
     /// </summary>
 
     public int RequestId { get; internal set; }
+
     /// <summary>
     /// This is the textual description of the error, also documented in the Error Codes topic.
     /// </summary>
@@ -86,7 +89,9 @@ namespace Daemaged.IBNet.Client
 
   public class TWSClientExceptionEventArgs : TWSClientEventArgs
   {
-    public TWSClientExceptionEventArgs(TWSClient client) : base(client) { }
+    public TWSClientExceptionEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     public Exception Exception { get; set; }
   }
@@ -97,24 +102,30 @@ namespace Daemaged.IBNet.Client
   /// </summary>
   public class TWSTickPriceEventArgs : TWSClientEventArgs
   {
-    public TWSTickPriceEventArgs(TWSClient client) : base(client) {}
+    public TWSTickPriceEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     /// <summary>
     /// The ticker Id that was specified previously in the call to reqMktData().
     /// </summary>
     public int TickerId { get; internal set; }
+
     /// <summary>
     /// Specifies the type of price.
     /// </summary>
     public IBTickType TickType { get; internal set; }
+
     /// <summary>
     /// Specifies the price for the specified field.
     /// </summary>
     public double Price { get; internal set; }
+
     /// <summary>
     /// Specifies the size for the specified field.
     /// </summary>
     public int Size { get; internal set; }
+
     /// <summary>
     /// specifies whether the price tick is available for automatic execution.
     /// </summary>
@@ -126,16 +137,20 @@ namespace Daemaged.IBNet.Client
 
   public class TWSTickSizeEventArgs : TWSClientEventArgs
   {
-    public TWSTickSizeEventArgs(TWSClient client) : base(client) {}
+    public TWSTickSizeEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     /// <summary>
     /// The ticker Id that was specified previously in the call to reqMktData().
     /// </summary>
     public int TickerId { get; internal set; }
+
     /// <summary>
     /// Specifies the type of price.
     /// </summary>
     public IBTickType TickType { get; internal set; }
+
     /// <summary>
     /// Specifies the size for the specified field.
     /// </summary>
@@ -144,15 +159,20 @@ namespace Daemaged.IBNet.Client
 
   public class TWSTickGenericEventArgs : TWSClientEventArgs
   {
-    public TWSTickGenericEventArgs(TWSClient client) : base(client) {}
+    public TWSTickGenericEventArgs(TWSClient client) : base(client)
+    {
+    }
+
     /// <summary>
     /// The ticker Id that was specified previously in the call to reqMktData().
     /// </summary>
     public int TickerId { get; internal set; }
+
     /// <summary>
     /// Specifies the type of price.
     /// </summary>
     public IBTickType TickType { get; internal set; }
+
     /// <summary>
     /// The value of the specified field.
     /// </summary>
@@ -161,7 +181,9 @@ namespace Daemaged.IBNet.Client
 
   public class TWSTickStringEventArgs : TWSClientEventArgs
   {
-    public TWSTickStringEventArgs(TWSClient client) : base(client) {}
+    public TWSTickStringEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     public int RequestId { get; internal set; }
     public IBTickType TickType { get; internal set; }
@@ -173,42 +195,52 @@ namespace Daemaged.IBNet.Client
   /// </summary>
   public class TWSTickEFPEventArgs : TWSClientEventArgs
   {
-    public TWSTickEFPEventArgs(TWSClient client) : base(client) {}
+    public TWSTickEFPEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     /// <summary>
     /// The ticker Id that was specified previously in the call to reqMktData().
     /// </summary>
     public int TickerId { get; internal set; }
+
     /// <summary>
     /// Specifies the type of price.
     /// </summary>
     /// <seealso cref="TickType"/>
     public IBTickType TickType { get; internal set; }
+
     /// <summary>
     /// Annualized basis points, which is representative of the
     /// financing rate that can be directly compared to broker rates.
     /// </summary>
     public double BasisPoints { get; internal set; }
+
     /// <summary>
     /// Annualized basis points as a formatted string that depicts them in percentage form.
     /// </summary>
     public string FormattedBasisPoints { get; internal set; }
+
     /// <summary>
     /// Implied futures price.
     /// </summary>
     public double ImpliedFuturesPrice { get; internal set; }
+
     /// <summary>
     /// Number of “hold days” until the expiry of the EFP.
     /// </summary>
     public int HoldDays { get; internal set; }
+
     /// <summary>
     /// Expiration date of the single stock future.
     /// </summary>
     public string FutureExpiry { get; internal set; }
+
     /// <summary>
     /// The “dividend impact” upon the annualized basis points interest rate.
     /// </summary>
     public double DividendImpact { get; internal set; }
+
     /// <summary>
     /// The dividends expected until the expiration of the single stock future.
     /// </summary>
@@ -218,7 +250,9 @@ namespace Daemaged.IBNet.Client
 
   public class TWSTickOptionComputationEventArgs : TWSClientEventArgs
   {
-    public TWSTickOptionComputationEventArgs(TWSClient client) : base(client) {}
+    public TWSTickOptionComputationEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     public int RequestId { get; internal set; }
     public IBTickType TickType { get; internal set; }
@@ -238,14 +272,18 @@ namespace Daemaged.IBNet.Client
 
   public class TWSCurrentTimeEventArgs : TWSClientEventArgs
   {
-    public TWSCurrentTimeEventArgs(TWSClient client) : base(client) {}
+    public TWSCurrentTimeEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     public DateTime Time { get; internal set; }
   }
 
   public class TWSMarketDataEventArgs : TWSClientEventArgs
   {
-    public TWSMarketDataEventArgs(TWSClient client) : base(client) {}
+    public TWSMarketDataEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     public IBTickType TickType { get; internal set; }
     public TWSMarketDataSnapshot Snapshot { get; internal set; }
@@ -256,97 +294,18 @@ namespace Daemaged.IBNet.Client
   /// </summary>
   public class TWSOrderStatusEventArgs : TWSClientEventArgs
   {
-    public TWSOrderStatusEventArgs(TWSClient client) : base(client) {}
+    public TWSOrderStatusEventArgs(TWSClient client) : base(client)
+    {
+    }
 
-    /// <summary>
-    /// The order Id that was specified previously in the call to PlaceOrder().
-    /// </summary>
-    /// <value>
-    /// The order id.
-    /// </value>
-    public int OrderId { get; internal set; }
-    /// <summary>
-    /// The order status.
-    /// </summary>
-    /// <remarks>Possible values include:
-    /// <list type="table">
-    /// <listheader>
-    /// <term>Status</term>
-    /// <description>Description</description>
-    /// </listheader>
-    /// <item>
-    /// <term>PendingSubmit</term>
-    /// <description>indicates that you have transmitted the order, but have not yet received confirmation that it has been accepted by the order destination. This order status is not sent by TWS and should be explicitly set by the API developer when an order is submitted.</description>
-    /// </item>
-    /// <item>
-    /// <term>PendingCancel</term>
-    /// <description>Indicates that you have sent a request to cancel the order but have not yet received cancel confirmation from the order destination. At this point, your order is not confirmed canceled. You may still receive an execution while your cancellation request is pending. This order status is not sent by TWS and should be explicitly set by the API developer when an order is canceled.</description>
-    /// </item>
-    /// <item>
-    /// <term>PreSubmitted</term>
-    /// <description>Indicates that a simulated order type has been accepted by the IB system and that this order has yet to be elected. The order is held in the IB system (and the status remains DARK BLUE) until the election criteria are met. At that time the order is transmitted to the order destination as specified (and the order status color will change).</description>
-    /// </item>
-    /// <item>
-    /// <term>Submitted</term>
-    /// <description>Indicates that your order has been accepted at the order destination and is working.</description>
-    /// </item>
-    /// <item>
-    /// <term>Cancelled</term>
-    /// <description>Indicates that the balance of your order has been confirmed canceled by the IB system. This could occur unexpectedly when IB or the destination has rejected your order.</description>
-    /// </item>
-    /// <item>
-    /// <term>Filled</term>
-    /// <description>The order has been completely filled.</description>
-    /// </item>
-    /// </list>
-    /// </remarks>
-    /// <seealso cref="OrderStatus"/>
-    public string Status { get; internal set; }
-
-    /// <summary>
-    /// Specifies the number of shares that have been executed.
-    /// </summary>
-    public int Filled { get; internal set; }
-    /// <summary>
-    /// Specifies the number of shares still outstanding.
-    /// </summary>
-    public int Remaining { get; internal set; }
-    /// <summary>
-    /// The average price of the shares that have been executed.
-    /// This parameter is valid only if the filled parameter value
-    /// is greater than zero. Otherwise, the price parameter will be zero.
-    /// </summary>
-    public double AvgFillPrice { get; internal set; }
-    /// <summary>
-    /// The TWS id used to identify orders. Remains the same over TWS sessions.
-    /// </summary>
-    public int PermId { get; internal set; }
-    /// <summary>
-    /// The order ID of the parent order, used for bracket and auto trailing stop orders.
-    /// </summary>
-    public int ParentId { get; internal set; }
-    /// <summary>
-    /// The last price of the shares that have been executed. This parameter is valid
-    /// only if the filled parameter value is greater than zero. Otherwise, the price parameter will be zero.
-    /// </summary>
-    public double LastFillPrice { get; internal set; }
-    /// <summary>
-    /// The Id of the client (or TWS) that placed the order.
-    /// The TWS orders have a fixed clientId and orderId of 0 that distinguishes them from API orders.
-    /// </summary>
-    public int ClientId { get; internal set; }
-    /// <summary>
-    /// This field is used to identify an order held when TWS is trying to locate shares for a short sell.
-    /// The value used to indicate this is 'locate'.
-    /// </summary>
-    /// <remarks>This field is supported starting with TWS release 872.</remarks>
-
-    public string WhyHeld { get; internal set; }
+    public IBOrderStatusReport Status { get; set; }
   }
 
   public class TWSOpenOrderEventArgs : TWSClientEventArgs
   {
-    public TWSOpenOrderEventArgs(TWSClient client) : base(client) {}
+    public TWSOpenOrderEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     /// <summary>
     /// Gets the order id.
@@ -355,13 +314,16 @@ namespace Daemaged.IBNet.Client
     /// The order id.
     /// </value>
     public int OrderId { get; internal set; }
+
     public IBOrder Order { get; internal set; }
     public IBContract Contract { get; internal set; }
   }
 
   public class TWSContractDetailsEventArgs : TWSClientEventArgs
   {
-    public TWSContractDetailsEventArgs(TWSClient client) : base(client) {}
+    public TWSContractDetailsEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     public IBContractDetails ContractDetails { get; internal set; }
 
@@ -370,7 +332,9 @@ namespace Daemaged.IBNet.Client
 
   public class TWSUpdatePortfolioEventArgs : TWSClientEventArgs
   {
-    public TWSUpdatePortfolioEventArgs(TWSClient client) : base(client) {}
+    public TWSUpdatePortfolioEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     public IBContract Contract { get; internal set; }
     public int Position { get; internal set; }
@@ -382,18 +346,22 @@ namespace Daemaged.IBNet.Client
     public string AccountName { get; internal set; }
   }
 
-  public class TWSExecDetailsEventArgs : TWSClientEventArgs
+  public class TWSExecutionDetailsEventArgs : TWSClientEventArgs
   {
-    public TWSExecDetailsEventArgs(TWSClient client) : base(client) {}
+    public TWSExecutionDetailsEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     public int OrderId { get; internal set; }
     public IBContract Contract { get; internal set; }
-    public IBExecution Execution { get; internal set; }
+    public IBExecutionDetails Execution { get; internal set; }
   }
 
   public class TWSMarketDepthEventArgs : TWSClientEventArgs
   {
-    public TWSMarketDepthEventArgs(TWSClient client) : base(client) {}
+    public TWSMarketDepthEventArgs(TWSClient client) : base(client)
+    {
+    }
 
     public int RequestId { get; internal set; }
     public int Position { get; internal set; }
@@ -406,7 +374,7 @@ namespace Daemaged.IBNet.Client
 
   public class TWSHistoricalDataEventArgs : TWSClientEventArgs
   {
-    public TWSHistoricalDataEventArgs(TWSClient client) : base(client) {}
+    public TWSHistoricalDataEventArgs(TWSClient client) : base(client) { }
 
     public int RequestId { get; internal set; }
     public TWSHistoricState State { get; internal set; }
@@ -422,7 +390,8 @@ namespace Daemaged.IBNet.Client
 
   public class TWSRealtimeBarEventArgs : TWSClientEventArgs
   {
-    public TWSRealtimeBarEventArgs(TWSClient client) : base(client) {}
+    public TWSRealtimeBarEventArgs(TWSClient client) : base(client) { }
+
     public int RequestId { get; internal set; }
     public long Time { get; internal set; }
     public double Open { get; internal set; }
@@ -433,9 +402,11 @@ namespace Daemaged.IBNet.Client
     public double Wap { get; internal set; }
     public int Count { get; internal set; }
   }
+
   public class TWSScannerDataEventArgs : TWSClientEventArgs
   {
-    public TWSScannerDataEventArgs(TWSClient client) : base(client) {}
+    internal TWSScannerDataEventArgs(TWSClient client) : base(client) { }
+
     public int RequestId { get; internal set; }
     public IBContractDetails Contract { get; internal set; }
     public int Rank { get; internal set; }
@@ -447,8 +418,65 @@ namespace Daemaged.IBNet.Client
   public class TWSScannerParametersEventArgs : TWSClientEventArgs
   {
     public TWSScannerParametersEventArgs(TWSClient client) : base(client) { }
+
     public string Xml { get; internal set; }
   }
 
+  public class TWSOrderChangedEventArgs : TWSClientEventArgs
+  {
+    internal TWSOrderChangedEventArgs(TWSClient client, OrderRecord or) : base(client)
+    {
+      OriginalOrder = or.Order;
+      OriginalContract = or.Contract;
+      OrderId = or.OrderId;
+    }
 
+    /// <summary>
+    /// The original IBOrder used when sending the order with <see cref="TWSClient.PlaceOrder"/>
+    /// </summary>
+    public IBOrder OriginalOrder { get; private set; }
+    /// <summary>
+    /// The original IBOrder used when sending the order with <see cref="TWSClient.PlaceOrder"/>
+    /// </summary>
+    public IBContract OriginalContract { get; private set; }
+
+    /// <summary>
+    /// The order id associated with this order
+    /// </summary>
+    public int OrderId { get; internal set; }
+
+    public IBOrderChangeType ChangeType { get; internal set; }
+
+    /// <summary>
+    /// The status received during a <see cref="TWSClient.OrderStatus"/> event for this order
+    /// </summary>
+    public IBOrderStatusReport Status { get; internal set; }
+
+    /// <summary>
+    /// The order received during a <see cref="TWSClient.OpenOrder"/> event for this order
+    /// </summary>
+    public IBOrder OpenOrder { get; internal set; }
+
+    /// <summary>
+    /// The order received during a <see cref="TWSClient.OpenOrder"/> event for this order
+    /// </summary>
+    public IBOrderState OpenOrderStats { get; internal set; }
+
+    /// <summary>
+    /// The order received during a <see cref="TWSClient.OpenOrder"/> or <see cref="TWSClient.ExecDetails"/>event for this order
+    /// </summary>
+    public IBContract ReportedContract { get; internal set; }
+
+    /// <summary>
+    /// The error received during a <see cref="TWSClient.Error"/> event for this order
+    /// </summary>
+    public TWSError Error { get; internal set; }
+
+    /// <summary>
+    /// The execution details received during a <see cref="TWSClient.ExecDetails/> event for this order
+    /// </summary>
+    public IBExecutionDetails ExecutionDetails { get; internal set; }
+
+    
+  }
 }
