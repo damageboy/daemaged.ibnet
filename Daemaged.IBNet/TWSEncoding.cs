@@ -300,13 +300,13 @@ namespace Daemaged.IBNet
       }
       decode_string_finished:
       return sb.Length != 0 ? sb.ToString() : null;
-    }
+    }    
 
     public T DecodeEnum<T>() where T : struct, IConvertible
     {
       var t = typeof (T);
-      var intValue = _enumDecoders.ContainsKey(t) ? 
-        _enumDecoders[t].EnumDeserializares[DecodeString()] : 
+      var intValue = _enumDecoders.ContainsKey(t) ?
+        _enumDecoders[t].EnumDeserializares[DecodeString() ?? String.Empty] : 
         DecodeInt();
       // Is this a TWS string based enum?
       return IntCaster<T>.ToT(intValue);

@@ -460,7 +460,7 @@ namespace Daemaged.IBNet.Client
     /// <summary>
     /// The order received during a <see cref="TWSClient.OpenOrder"/> event for this order
     /// </summary>
-    public IBOrderState OpenOrderStats { get; internal set; }
+    public IBOrderState OpenOrderState { get; internal set; }
 
     /// <summary>
     /// The order received during a <see cref="TWSClient.OpenOrder"/> or <see cref="TWSClient.ExecDetails"/>event for this order

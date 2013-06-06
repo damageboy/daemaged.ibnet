@@ -771,7 +771,7 @@ namespace Daemaged.IBNet.Client
         OrderRecord or;
         if (_orderRecords.TryGetValue(orderId, out or)) {
           OrderChanged(this, new TWSOrderChangedEventArgs(this, or) {
-            ChangeType = IBOrderChangeType.Error,
+            ChangeType = IBOrderChangeType.OrderStatus,
             Status = status,
           });
         }
@@ -795,7 +795,7 @@ namespace Daemaged.IBNet.Client
             ChangeType = IBOrderChangeType.OpenOrder,
             ReportedContract = contract,
             OpenOrder = order,
-            OpenOrderStats = orderState
+            OpenOrderState = orderState
           });
         }
       }
@@ -1040,7 +1040,7 @@ namespace Daemaged.IBNet.Client
     {
       var version = _enc.DecodeInt();
       var orderId = _enc.DecodeInt();
-      var status = _enc.DecodeString();
+      var status = _enc.DecodeEnum<IBOrderStatus>();
       var filled = _enc.DecodeInt();
       var remaining = _enc.DecodeInt();
       var avgFillPrice = _enc.DecodeDouble();
@@ -1161,7 +1161,7 @@ namespace Daemaged.IBNet.Client
         ContractId = version >= 17 ? _enc.DecodeInt() : 0,
         Symbol = _enc.DecodeString(),
         SecurityType = _enc.DecodeEnum<IBSecurityType>(),
-        Expiry = DateTime.ParseExact(_enc.DecodeString(), IB_EXPIRY_DATE_FORMAT, CultureInfo.InvariantCulture),
+        Expiry = DecodeIBExpiry(_enc),
         Strike = _enc.DecodeDouble(),
         Right = _enc.DecodeString(),
         Exchange = _enc.DecodeString(),
@@ -1440,7 +1440,7 @@ namespace Daemaged.IBNet.Client
         ContractId = version >= 6 ? _enc.DecodeInt() : 0,
         Symbol = _enc.DecodeString(),
         SecurityType = _enc.DecodeEnum<IBSecurityType>(),
-        Expiry = DateTime.ParseExact(_enc.DecodeString(), IB_EXPIRY_DATE_FORMAT, CultureInfo.InvariantCulture),
+        Expiry = DecodeIBExpiry(_enc),
         Strike = _enc.DecodeDouble(),
         Right = _enc.DecodeString(),
         Multiplier = version >= 7 ? _enc.DecodeString() : null,
@@ -1588,7 +1588,7 @@ namespace Daemaged.IBNet.Client
           ContractId = version >= 5 ? _enc.DecodeInt() : 0,
           Symbol = _enc.DecodeString(),
           SecurityType = _enc.DecodeEnum<IBSecurityType>(),
-          Expiry = DateTime.ParseExact(_enc.DecodeString(), IB_EXPIRY_DATE_FORMAT, CultureInfo.InvariantCulture),
+          Expiry = DecodeIBExpiry(_enc),
           Strike = _enc.DecodeDouble(),
           Right = _enc.DecodeString()
         };
@@ -1784,7 +1784,7 @@ namespace Daemaged.IBNet.Client
                 ContractId = version >= 3 ? _enc.DecodeInt() : 0,
                 Symbol = _enc.DecodeString(),
                 SecurityType = _enc.DecodeEnum<IBSecurityType>(),
-                Expiry = DateTime.ParseExact(_enc.DecodeString(), IB_EXPIRY_DATE_FORMAT, CultureInfo.InvariantCulture),
+                Expiry = DecodeIBExpiry(_enc),
                 Strike = _enc.DecodeDouble(),
                 Right = _enc.DecodeString(),
                 Exchange = _enc.DecodeString(),
@@ -2105,7 +2105,7 @@ namespace Daemaged.IBNet.Client
             _enc.Encode(contract.ContractId);
 
           _enc.Encode(contract.Symbol);
-          _enc.Encode(contract.SecurityType.ToString());
+          _enc.Encode(contract.SecurityType);
           _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
           _enc.Encode(contract.Strike);
           _enc.Encode(contract.Right);
@@ -2377,11 +2377,12 @@ namespace Daemaged.IBNet.Client
           throw;
         }
 
+        order.OrderId = orderId;
         _orderRecords.Add(orderId, new OrderRecord {
           OrderId = orderId,
           Order = order,
           Contract = contract,
-        });
+        });        
         return orderId;
       }
     }
@@ -2499,7 +2500,7 @@ namespace Daemaged.IBNet.Client
         _enc.Encode(reqVersion);
         _enc.Encode(reqId);
         _enc.Encode(contract.Symbol);
-        _enc.Encode(contract.SecurityType.ToString());
+        _enc.Encode(contract.SecurityType);
         _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
         _enc.Encode(contract.Strike);
         _enc.Encode(contract.Right);

@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$description$</title>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <licenseUrl>http://opensource.org/licenses/MIT</licenseUrl>
+    <projectUrl>http://damageboy.github.io/daemaged.ibnet/</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <summary>A pure, clean .NET implementation of Interactive Brokers' TWS api</summary>
+    <description>A pure, clean .NET implementation of Interactive Brokers' TWS api.
+    Provides full api coverage of TWS socket client/api, wrapped nicely into native .NET constructs
+    such as event-handlers and async api (for .NET 4.5).
+    In addition, a higher level API is provided to allow
+    </description>
+    <releaseNotes>TWS api</releaseNotes>
+    <copyright>Copyright 2013</copyright>
+    <tags>IB TWS Trading API finance</tags>
+  </metadata>
+  <files>
+	  <!--    <file src="..\bin\v40\Release\Daemaged.IBNet.dll" target="lib\net40" /> 
+    <file src="..\bin\v40\Release\Daemaged.IBNet.xml" target="lib\net40" /> 
+    <file src="..\bin\Release\Daemaged.IBNet.dll" target="lib\net45" /> 
+    <file src="..\bin\Release\Daemaged.IBNet.xml" target="lib\net45" /> -->
+  </files>
+</package>
+

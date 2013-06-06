@@ -835,7 +835,7 @@ namespace Daemaged.IBNet
     /// delta neutral trade on full or partial execution of the VOL order.
     /// For no hedge delta order to be sent, specify NONE.
     /// </summary>
-    [StringSerializer("NONE")] None,
+    [StringSerializer("None")] None,
 
     /// <summary>
     /// Used to initialize the delta Order Field.
