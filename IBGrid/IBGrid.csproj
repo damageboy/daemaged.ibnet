@@ -60,10 +60,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="OxyPlot">
-      <HintPath>..\packages\OxyPlot.Core.2013.1.43.1\lib\portable-net4+sl4+wp71+win8\OxyPlot.dll</HintPath>
+      <HintPath>..\packages\OxyPlot.Core.2013.1.48.1\lib\portable-net4+sl4+wp71+win8\OxyPlot.dll</HintPath>
     </Reference>
     <Reference Include="OxyPlot.WindowsForms">
-      <HintPath>..\packages\OxyPlot.WindowsForms.2013.1.43.1\lib\NET45\OxyPlot.WindowsForms.dll</HintPath>
+      <HintPath>..\packages\OxyPlot.WindowsForms.2013.1.48.1\lib\NET45\OxyPlot.WindowsForms.dll</HintPath>
     </Reference>
     <Reference Include="PostSharp, Version=2.1.0.0, Culture=neutral, PublicKeyToken=b13fd38b8f9c99d7, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
