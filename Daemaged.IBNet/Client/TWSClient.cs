@@ -58,6 +58,9 @@ using Daemaged.IBNet.Util;
 
 namespace Daemaged.IBNet.Client
 {
+  /// <summary>
+  /// Implements a full TWS Api client
+  /// </summary>
   public class TWSClient
   {
     public const string DEFAULT_HOST = "127.0.0.1";
@@ -375,6 +378,12 @@ namespace Daemaged.IBNet.Client
       }
     }
 
+
+    /// <summary>
+    /// Cancels an order previously submitted through the client to TWS
+    /// </summary>
+    /// <param name="orderId">The order id, normally obtained with <see cref="PlaceOrder"/></param>
+    /// <exception cref="Daemaged.IBNet.Client.NotConnectedException"></exception>
     public void CancelOrder(int orderId)
     {
       lock (this) {
@@ -862,8 +871,8 @@ namespace Daemaged.IBNet.Client
 
     protected void OnExecutionDetails(int orderId, IBContract contract, IBExecutionDetails execution)
     {
-      if (ExecDetails != null)
-        ExecDetails(this, new TWSExecutionDetailsEventArgs(this) {
+      if (ExecutionDetails != null)
+        ExecutionDetails(this, new TWSExecutionDetailsEventArgs(this) {
           OrderId = orderId,
           Contract = contract,
           Execution = execution
@@ -1598,8 +1607,7 @@ namespace Daemaged.IBNet.Client
       contract.Exchange = _enc.DecodeString();
       contract.Currency = _enc.DecodeString();
       contract.LocalSymbol = _enc.DecodeString();
-      var execution = new IBExecutionDetails
-        {
+      var execution = new IBExecutionDetails {
           OrderId = orderId,
           ExecId = _enc.DecodeString(),
           Time = _enc.DecodeString(),
@@ -2084,6 +2092,13 @@ namespace Daemaged.IBNet.Client
 
     #region Request Methods
 
+    /// <summary>
+    /// Places an order for the requested contract through TWS
+    /// </summary>
+    /// <param name="contract">The contract.</param>
+    /// <param name="order">The order.</param>
+    /// <returns>the order id of the newly generated order</returns>
+    /// <exception cref="Daemaged.IBNet.Client.NotConnectedException"></exception>
     public virtual int PlaceOrder(IBContract contract, IBOrder order)
     {
       lock (this) {
@@ -3249,6 +3264,13 @@ namespace Daemaged.IBNet.Client
       }
     }
 
+
+    /// <summary>
+    /// Requests the executions.
+    /// </summary>
+    /// <param name="filter">A filter to help narrow down the list of executions</param>
+    /// <returns>the request id associated with this request to TWS, to be used later with the <see cref="ExecutionDetails"/> event</returns>
+    /// <exception cref="Daemaged.IBNet.Client.NotConnectedException"></exception>
     public virtual int RequestExecutions(IBExecutionFilter filter)
     {
       // not connected?
@@ -3409,6 +3431,7 @@ namespace Daemaged.IBNet.Client
 
     #endregion
 
+
     private int NextValidId
     {
       get { return Interlocked.Increment(ref _nextValidId); }
@@ -3445,6 +3468,13 @@ namespace Daemaged.IBNet.Client
       }
     }
 
+    /// <summary>
+    /// Gets or sets the end point this client is connected to
+    /// </summary>
+    /// <value>
+    /// The end point.
+    /// </value>
+    /// <exception cref="System.Exception">Client already connected, cannot set the EndPoint</exception>
     public IPEndPoint EndPoint
     {
       get { return _endPoint; }
@@ -3469,35 +3499,77 @@ namespace Daemaged.IBNet.Client
     public TWSClientInfo ClientInfo { get; private set; }
     public TWSServerInfo ServerInfo { get; private set; }
     public event EventHandler<TWSClientStatusEventArgs> StatusChanged;
+    /// <summary>
+    /// Occurs when TWS sends a server generated error.
+    /// </summary>
     public event EventHandler<TWSClientErrorEventArgs> Error;
+    /// <summary>
+    /// Occurs when an internal exception occurs in the client implementation
+    /// </summary>
     public event EventHandler<TWSClientExceptionEventArgs> ExceptionOccured;
+    /// <summary>
+    /// Occurs when TWS sends a price market-data update/event
+    /// </summary>
     public event EventHandler<TWSTickPriceEventArgs> TickPrice;
+    /// <summary>
+    /// Occurs when TWS sends a size market-data update/event
+    /// </summary>
     public event EventHandler<TWSTickSizeEventArgs> TickSize;
+    /// <summary>
+    /// Occurs when TWS sends a string market-data update/event
+    /// </summary>
     public event EventHandler<TWSTickStringEventArgs> TickString;
+    /// <summary>
+    /// Occurs when generic market-data update/event
+    /// </summary>
     public event EventHandler<TWSTickGenericEventArgs> TickGeneric;
     public event EventHandler<TWSTickOptionComputationEventArgs> TickOptionComputation;
     public event EventHandler<TWSTickEFPEventArgs> TickEFP;
     public event EventHandler<TWSCurrentTimeEventArgs> CurrentTime;
+    /// <summary>
+    /// Occurs when an order's status is updated remotely, 
+    /// e.g. a fill event, cancellation confirmation etc.
+    /// </summary>
     public event EventHandler<TWSOrderStatusEventArgs> OrderStatus;
+    /// <summary>
+    /// Occurs when an order is reported as active/working
+    /// This event is sent for new orders place with the <see cref="PlaceOrder"/> method
+    /// as well as for all working orders submitted by this <see cref="TWSClientId"/> upon initial connection
+    /// </summary>
     public event EventHandler<TWSOpenOrderEventArgs> OpenOrder;
     public event EventHandler<TWSContractDetailsEventArgs> BondContractDetails;
+    /// <summary>
+    /// Occurs when TWS responds with retrieved contract details in response to 
+    /// a <see cref="RequestContractDetails"/> 
+#if NET_4_5
+    /// or <see cref="GetContractDetailsAsync"/>
+#endif
+    /// call
+    /// </summary>
     public event EventHandler<TWSContractDetailsEventArgs> ContractDetails;
     public event EventHandler<TWSScannerDataEventArgs> ScannerData;
     public event EventHandler<TWSScannerParametersEventArgs> ScannerParameters;
     public event EventHandler<TWSUpdatePortfolioEventArgs> UpdatePortfolio;
-    public event EventHandler<TWSExecutionDetailsEventArgs> ExecDetails;
+    /// <summary>
+    /// Occurs when TWS responds with execution information for executed orders.
+    /// This event is called for executed orders retrieved for a corresponding <see cref="RequestExecutions"/> call
+    /// or for orders that we executed for this client while it was disconnected upon reconnection
+    /// </summary>
+    public event EventHandler<TWSExecutionDetailsEventArgs> ExecutionDetails;
     public event EventHandler<TWSMarketDepthEventArgs> MarketDepth;
     public event EventHandler<TWSMarketDepthEventArgs> MarketDepthL2;
     public event EventHandler<TWSHistoricalDataEventArgs> HistoricalData;
     public event EventHandler<TWSMarketDataEventArgs> MarketData;
     public event EventHandler<TWSRealtimeBarEventArgs> RealtimeBar;
+    /// <summary>
+    /// Occurs when one of the order related events occurs for an order sent through the api
+    /// </summary>
     public event EventHandler<TWSOrderChangedEventArgs> OrderChanged;
 
   }
 
 
   public class NotConnectedException : Exception { }
-
   public class TWSOutdatedException : Exception { }
   public class TWSDisconnectedException : Exception { }
   public class TWSServerException : Exception

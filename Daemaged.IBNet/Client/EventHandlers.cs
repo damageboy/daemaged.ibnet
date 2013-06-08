@@ -463,7 +463,7 @@ namespace Daemaged.IBNet.Client
     public IBOrderState OpenOrderState { get; internal set; }
 
     /// <summary>
-    /// The order received during a <see cref="TWSClient.OpenOrder"/> or <see cref="TWSClient.ExecDetails"/>event for this order
+    /// The order received during a <see cref="TWSClient.OpenOrder"/> or <see cref="TWSClient.ExecutionDetails"/>event for this order
     /// </summary>
     public IBContract ReportedContract { get; internal set; }
 
@@ -473,7 +473,7 @@ namespace Daemaged.IBNet.Client
     public TWSError Error { get; internal set; }
 
     /// <summary>
-    /// The execution details received during a <see cref="TWSClient.ExecDetails/> event for this order
+    /// The execution details received during a <see cref="TWSClient.ExecutionDetails
     /// </summary>
     public IBExecutionDetails ExecutionDetails { get; internal set; }
 
