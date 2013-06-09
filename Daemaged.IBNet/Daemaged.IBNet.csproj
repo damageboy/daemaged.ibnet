@@ -69,6 +69,7 @@
     <Compile Include="Client\TWSClientSettings.cs" />
     <Compile Include="Client\TWSSocketFactory.cs" />
     <Compile Include="Clock.cs" />
+    <Compile Include="Dsl\TWSMessage.cs" />
     <Compile Include="EchoStream.cs" />
     <Compile Include="Enums.cs" />
     <Compile Include="Client\EventHandlers.cs" />

@@ -52,6 +52,7 @@ using System.Text;
 using System.Threading;
 #if NET_4_5
 using System.Threading.Tasks;
+using Daemaged.IBNet.Dsl;
 using Daemaged.IBNet.Util;
 
 #endif
@@ -88,8 +89,7 @@ namespace Daemaged.IBNet.Client
     private TcpClient _tcpClient;
     private Thread _thread;
     private string _twsTime;
-    private string NUMBER_DECIMAL_SEPARATOR;
-    
+    private string NUMBER_DECIMAL_SEPARATOR;    
 
     #region Constructors
 
@@ -3330,6 +3330,11 @@ namespace Daemaged.IBNet.Client
 
     public virtual int RequestContractDetails(IBContract contract, int requestId = 0)
     {
+
+
+      Encoder<
+
+
       // not connected?
       if (!IsConnected)
         throw new NotConnectedException();
@@ -3431,8 +3436,7 @@ namespace Daemaged.IBNet.Client
 
     #endregion
 
-
-    private int NextValidId
+    internal int NextValidId
     {
       get { return Interlocked.Increment(ref _nextValidId); }
     }
