@@ -146,7 +146,7 @@ namespace Daemaged.IBNet.Playback
 
       // The "local" loop-back server provides a "reversed engineered" view into
       // what API the client was using and how exactly
-      _loopbackServer = new TWSLoopbackServer(_logStream, _enc);
+      _loopbackServer = new TWSLoopbackServer(_logStream, Encoding);
       _loopbackServer.Login += LoopbackServer_Login;
       _loopbackServer.MarketDataRequest += LoopbackServer_MarketDataRequest;
       _loopbackServer.MarketDepthCancel += LoopbackServer_MarketDepthCancel;

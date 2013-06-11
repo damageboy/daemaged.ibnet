@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Daemaged.IBNet.Client;
@@ -42,18 +43,23 @@ namespace Daemaged.IBNet.Dsl
 
   }
 
-  internal class TWSField
+  internal abstract class TWSField
   {
-    public string Name { get; set; }
-    public TWSType Type { get; set; }
-    public int SupportedSince { get; set; }
-    
+    internal string Name { get; set; }
+    internal TWSType Type { get; set; }
+    internal int SupportedSince { get; set; }
+    internal abstract Expression AbstractSelector { get; }
+
   }
 
   internal class TWSField<TMessage, TField> : TWSField
   {
     public Expression<Func<TMessage, TField>> Selector;
-    public Expression<Func<TWSClient, TMessage, TField>> Selector2;
+
+    internal override Expression AbstractSelector
+    {
+      get { return Selector; }
+    }
   }
 
   internal enum TWSType
@@ -66,9 +72,9 @@ namespace Daemaged.IBNet.Dsl
     Enum,
   }
 
-  internal class TWSMessageDefinitions
+  internal static class TWSMessageDefinitions
   {
-    internal TWSMessage<IBContract> RequestContractDetailsMessage = new TWSMessage<IBContract> {      
+    internal static TWSMessage<IBContract> RequestContractDetailsMessage = new TWSMessage<IBContract> {      
       { _ => 6 },
       { c => c.RequestId, 40},
       { c => c.ContractId, 37 },
@@ -89,6 +95,119 @@ namespace Daemaged.IBNet.Dsl
 
   internal class TWSEncoderGenerator
   {
-    
+    public static Action<TWSClient, T> GetEncoderFunc<T>(TWSMessage<T> template)
+    {
+      var clientParam = Expression.Parameter(typeof(TWSClient));
+      var tParam = Expression.Parameter(typeof(T));
+
+      BlockExpression block = Expression.Block(template.Select(f => GenerateFieldEncoder<T>(f, clientParam, tParam)));
+      return Expression.Lambda<Action<TWSClient, T>>(block, new[] { clientParam, tParam}).Compile();
+    }
+
+    private static Expression GenerateFieldEncoder<T>(TWSField field, ParameterExpression clientParam, ParameterExpression tParam)
+    {
+      var encoder = Expression.PropertyOrField(clientParam, "Encoding");
+      var op = Expression.Call(encoder, GetEncodeMethodInfoForField(field), encoder, GetEncodeParam(field));
+
+      if (field.SupportedSince > 0)
+        return
+          Expression.IfThen(
+            Expression.GreaterThanOrEqual(Expression.PropertyOrField(clientParam, "ServerVersion"),
+                                          Expression.Constant(field.SupportedSince)), op);
+      
+      return op;
+    }
+
+    private static Expression GetEncodeParam(TWSField field)
+    {
+      var lmbd = (LambdaExpression)field.AbstractSelector;
+      return lmbd.Body;      
+    }
+
+    private static MethodInfo GetEncodeMethodInfoForField(TWSField field)
+    {
+      switch (field.Type)
+      {
+        case TWSType.Boolean:
+          return SymbolExtensions.GetMethodInfo<ITWSEncoding>(e => e.Encode(true));
+        case TWSType.Int:
+          return SymbolExtensions.GetMethodInfo<ITWSEncoding>(e => e.Encode(666));
+        case TWSType.Double:
+          return SymbolExtensions.GetMethodInfo<ITWSEncoding>(e => e.Encode(666.6));
+        case TWSType.String:
+          return SymbolExtensions.GetMethodInfo<ITWSEncoding>(e => e.Encode("666"));
+        case TWSType.ExpiryDate:
+          return SymbolExtensions.GetMethodInfo<ITWSEncoding>(e => e.EncodeExpiryDate(DateTime.MinValue));
+        case TWSType.Enum:
+          var lmbd = (LambdaExpression) field.AbstractSelector;
+          var member = (MemberExpression) lmbd.Body;
+          return typeof (ITWSEncoding).GetMethod("Encode", new[] {member.Type});
+        default:
+          throw new ArgumentOutOfRangeException();
+      }
+    }
+  }
+
+  public static class SymbolExtensions
+  {
+    /// <summary>
+    /// Given a lambda expression that calls a method, returns the method info.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="expression">The expression.</param>
+    /// <returns></returns>
+    public static MethodInfo GetMethodInfo(Expression<Action> expression)
+    {
+      return GetMethodInfo((LambdaExpression)expression);
+    }
+
+    /// <summary>
+    /// Given a lambda expression that calls a method, returns the method info.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="expression">The expression.</param>
+    /// <returns></returns>
+    public static MethodInfo GetMethodInfo<T>(Expression<Action<T>> expression)
+    {
+      return GetMethodInfo((LambdaExpression)expression);
+    }
+
+    /// <summary>
+    /// Given a lambda expression that calls a method, returns the method info.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="expression">The expression.</param>
+    /// <returns></returns>
+    public static MethodInfo GetMethodInfo<T, TResult>(Expression<Func<T, TResult>> expression)
+    {
+      return GetMethodInfo((LambdaExpression)expression);
+    }
+
+    /// <summary>
+    /// Given a lambda expression that calls a method, returns the method info.
+    /// </summary>
+    /// <param name="expression">The expression.</param>
+    /// <returns></returns>
+    public static MethodInfo GetMethodInfo(LambdaExpression expression)
+    {
+      MethodCallExpression outermostExpression = expression.Body as MethodCallExpression;
+
+      if (outermostExpression == null)
+      {
+        throw new ArgumentException("Invalid Expression. Expression should consist of a Method call only.");
+      }
+
+      return outermostExpression.Method;
+    }
+  }
+
+
+  public static class TWSMessageExtensions
+  {
+    internal static void Encode<T>(this TWSMessage<T> messageTemplate, TWSClient client, T t)
+    {
+      var f = TWSEncoderGenerator.GetEncoderFunc<T>(messageTemplate);
+      f(client, t);
+    }
   }
 }

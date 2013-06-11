@@ -47,10 +47,8 @@ namespace Daemaged.IBNet
   public interface ITWSEncoding
   {    
     bool DecodeBool();    
-    TWSClientInfo DecodeClientInfo();
     double DecodeDouble();
     double DecodeDoubleMax();
-    TWSServerInfo DecodeServerInfo();
     TWSClientId DecodeClientId();
     int DecodeInt();
     int DecodeIntMax();
@@ -63,11 +61,9 @@ namespace Daemaged.IBNet
 
     void Encode<T>(T value) where T : struct, IConvertible;    
     void Encode(bool value);
-    void Encode(TWSServerInfo info);
     void Encode(string text);
     void Encode(double value);
     void Encode(int value);
-    void Encode(TWSClientInfo clientVersion);
     void Encode(TWSClientId clientId);
     void EncodeExpiryDate(DateTime expiry);
     void EncodeMax(int value);

@@ -127,15 +127,6 @@ namespace Daemaged.IBNet
 
     #region Encode Wrappers
 
-    public virtual void Encode(TWSClientInfo v)
-    {
-      Encode(v.Version);
-    }
-
-    public virtual void Encode(TWSServerInfo v)
-    {
-      Encode(v.Version);
-    }
 
     public virtual void Encode(TWSClientId id)
     {
@@ -217,17 +208,6 @@ namespace Daemaged.IBNet
         return DateTime.ParseExact(expiryString, IB_EXPIRY_DATE_FORMAT, CultureInfo.InvariantCulture);
 
       return new DateTime();
-    }
-
-
-    public virtual TWSServerInfo DecodeServerInfo()
-    {
-      return new TWSServerInfo(DecodeInt());
-    }
-
-    public virtual TWSClientInfo DecodeClientInfo()
-    {
-      return new TWSClientInfo(DecodeInt());
     }
 
     public virtual TWSClientId DecodeClientId()

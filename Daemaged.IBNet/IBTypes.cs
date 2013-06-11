@@ -125,21 +125,7 @@ namespace Daemaged.IBNet
     // 59 = can receive evRule, evMultiplier in contractDescription/bondContractDescription/executionDetails
     //      can receive multiplier in executionDetails
     // 60 = can receive deltaNeutralOpenClose, deltaNeutralShortSale, deltaNeutralShortSaleSlot and deltaNeutralDesignatedLocation in openOrder
-
-
-    private const int CLIENT_VERSION = 60;
-
-    public TWSClientInfo(int version)
-    {
-      Version = version;
-    }
-
-    public TWSClientInfo()
-    {
-      Version = CLIENT_VERSION;
-    }
-
-    public int Version { get; private set; }
+    public const int CurrentClientVersion = 60;
   }
 
   public class TWSServerInfo
@@ -178,12 +164,6 @@ namespace Daemaged.IBNet
     internal const int MIN_SERVER_VER_TRAILING_PERCENT = 62;
     internal const int MIN_SERVER_VER_DELTA_NEUTRAL_OPEN_CLOSE = 66;
     internal const int SERVER_VERSION = 38;
-    public TWSServerInfo(int version)
-    {
-      Version = version;
-    }
-
-    public int Version { get; private set; }
   }
 
   public class TWSClientId

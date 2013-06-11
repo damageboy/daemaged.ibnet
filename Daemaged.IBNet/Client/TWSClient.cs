@@ -76,7 +76,7 @@ namespace Daemaged.IBNet.Client
 #endif
     private int _clientId;
     private bool _doWork;
-    protected ITWSEncoding _enc;
+    private ITWSEncoding _enc;
     private IPEndPoint _endPoint;
     protected Dictionary<int, TWSMarketDataSnapshot> _marketDataRecords = new Dictionary<int, TWSMarketDataSnapshot>();
     private int _nextValidId;
@@ -89,7 +89,23 @@ namespace Daemaged.IBNet.Client
     private TcpClient _tcpClient;
     private Thread _thread;
     private string _twsTime;
-    private string NUMBER_DECIMAL_SEPARATOR;    
+    private string NUMBER_DECIMAL_SEPARATOR;
+    
+    /// <summary>
+    /// Gets the server version.
+    /// </summary>
+    /// <value>
+    /// The server version.
+    /// </value>
+    public int ServerVersion { get; private set; }
+
+    /// <summary>
+    /// Gets the client version.
+    /// </summary>
+    /// <value>
+    /// The client version.
+    /// </value>
+    public int ClientVersion { get; private set; }
 
     #region Constructors
 
@@ -103,13 +119,13 @@ namespace Daemaged.IBNet.Client
       _nextValidId = 0;
 
       _orderIds = new Dictionary<string, int>();
-
-      ClientInfo = new TWSClientInfo();
+      
 
       NUMBER_DECIMAL_SEPARATOR = NumberFormatInfo.CurrentInfo.NumberDecimalSeparator;
       EndPoint = new IPEndPoint(new IPAddress(new byte[] {127, 0, 0, 1}), DEFAULT_PORT);
 
       _settings = new TWSClientSettings();
+      
     }
 
     public TWSClient(IPEndPoint server) : this()
@@ -163,8 +179,8 @@ namespace Daemaged.IBNet.Client
           else
             _enc = new TWSEncoding(new BufferedReadStream(_tcpClient.GetStream()));
 
-
-          _enc.Encode(ClientInfo);
+          ClientVersion = TWSClientInfo.CurrentClientVersion;
+          _enc.Encode(ClientVersion);
           _enc.Flush();
           _doWork = true;
 
@@ -177,19 +193,19 @@ namespace Daemaged.IBNet.Client
               };
           }
           // Get the server version
-          ServerInfo = _enc.DecodeServerInfo();
-          if (ServerInfo.Version >= 20) {
+          ServerVersion = _enc.DecodeInt();
+          if (ServerVersion >= 20) {
             _twsTime = _enc.DecodeString();
           }
 
-          if (ServerInfo.Version < TWSServerInfo.SERVER_VERSION)
+          if (ServerVersion < TWSServerInfo.SERVER_VERSION)
           {
             Disconnect();
             throw new Exception("Server version is too low, please update the TWS server");
           }
 
           // Send the client id
-          if (ServerInfo.Version >= 3) {
+          if (ServerVersion >= 3) {
             if (clientId == -1) {
               if (_tcpClient.Client.LocalEndPoint is IPEndPoint) {
                 var p = _tcpClient.Client.LocalEndPoint as IPEndPoint;
@@ -216,6 +232,8 @@ namespace Daemaged.IBNet.Client
         }
       }
     }
+
+    
 
     /// <summary>
     /// Disconnect from the IB Trader Workstation endpoint
@@ -270,7 +288,7 @@ namespace Daemaged.IBNet.Client
         if (!IsConnected)
           throw new NotConnectedException();
 
-        if (ServerInfo.Version < 24) 
+        if (ServerVersion < 24) 
           throw new TWSOutdatedException();
 
         const int reqVersion = 1;
@@ -299,7 +317,7 @@ namespace Daemaged.IBNet.Client
         if (!IsConnected)
           throw new NotConnectedException();
 
-        if (ServerInfo.Version < 24)
+        if (ServerVersion < 24)
           throw new TWSOutdatedException();
 
         const int reqVersion = 1;
@@ -340,7 +358,7 @@ namespace Daemaged.IBNet.Client
       lock (this) {
         if (!IsConnected)
           throw new NotConnectedException();
-        if (ServerInfo.Version < 6) {
+        if (ServerVersion < 6) {
           OnError(TWSErrors.UPDATE_TWS);
           return;
         }
@@ -408,7 +426,7 @@ namespace Daemaged.IBNet.Client
       if (!IsConnected)
         throw new NotConnectedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REAL_TIME_BARS) {
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_REAL_TIME_BARS) {
         OnError(TWSErrors.UPDATE_TWS);
         return;
       }
@@ -1228,7 +1246,7 @@ namespace Daemaged.IBNet.Client
         order.SettlingFirm = _enc.DecodeString();
         order.ShortSaleSlot = _enc.DecodeInt();
         order.DesignatedLocation = _enc.DecodeString();
-        if (ServerInfo.Version == 51)
+        if (ServerVersion == 51)
           _enc.DecodeInt(); // exemptCode        
         else if (version >= 23)
           order.ExemptCode = _enc.DecodeInt();
@@ -1285,7 +1303,7 @@ namespace Daemaged.IBNet.Client
           }
         }
         order.ContinuousUpdate = _enc.DecodeInt();
-        if (ServerInfo.Version == 26) {
+        if (ServerVersion == 26) {
           order.StockRangeLower = _enc.DecodeDouble();
           order.StockRangeUpper = _enc.DecodeDouble();
         }
@@ -1474,7 +1492,7 @@ namespace Daemaged.IBNet.Client
       if (version >= 4)
         accountName = _enc.DecodeString();
 
-      if (version == 6 && ServerInfo.Version == 39)
+      if (version == 6 && ServerVersion == 39)
         contractDetails.PrimaryExchange = _enc.DecodeString();
 
       OnUpdatePortfolio(contractDetails, position, marketPrice, marketValue, averageCost, unrealizedPnl, realizedPnl,
@@ -2109,14 +2127,14 @@ namespace Daemaged.IBNet.Client
 
         var orderId = NextValidId;
 
-        var reqVersion = ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_NOT_HELD ? 27 : 39;
+        var reqVersion = ServerVersion < TWSServerInfo.MIN_SERVER_VER_NOT_HELD ? 27 : 39;
         
         try {
           _enc.Encode(ServerMessage.PlaceOrder);
           _enc.Encode(reqVersion);
           _enc.Encode(orderId);
           // send contract fields
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_PLACE_ORDER_CONID)
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_PLACE_ORDER_CONID)
             _enc.Encode(contract.ContractId);
 
           _enc.Encode(contract.Symbol);
@@ -2124,15 +2142,15 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
           _enc.Encode(contract.Strike);
           _enc.Encode(contract.Right);
-          if (ServerInfo.Version >= 15)
+          if (ServerVersion >= 15)
             _enc.Encode(contract.Multiplier);
           _enc.Encode(contract.Exchange);
-          if (ServerInfo.Version >= 14)
+          if (ServerVersion >= 14)
             _enc.Encode(contract.PrimaryExchange);
           _enc.Encode(contract.Currency);
-          if (ServerInfo.Version >= 2)
+          if (ServerVersion >= 2)
             _enc.Encode(contract.LocalSymbol);
-          if (ServerInfo.Version > TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE) {
+          if (ServerVersion > TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE) {
             _enc.Encode(contract.SecurityIdType);
             _enc.Encode(contract.SecurityId);
           }
@@ -2141,13 +2159,13 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(order.TotalQuantity);
           _enc.Encode(order.OrderType);
 
-          if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_ORDER_COMBO_LEGS_PRICE)
+          if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_ORDER_COMBO_LEGS_PRICE)
             _enc.Encode(order.LimitPrice == Double.MaxValue ? 0 : order.LimitPrice);
           else
             _enc.EncodeMax(order.LimitPrice);
 
 
-          if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_TRAILING_PERCENT)
+          if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_TRAILING_PERCENT)
             _enc.Encode(order.AuxPrice == Double.MaxValue ? 0 : order.AuxPrice);
           else
             _enc.EncodeMax(order.AuxPrice);
@@ -2159,22 +2177,22 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(order.Origin);
           _enc.Encode(order.OrderRef);
           _enc.Encode(order.Transmit);
-          if (ServerInfo.Version >= 4)
+          if (ServerVersion >= 4)
             _enc.Encode(order.ParentId);
-          if (ServerInfo.Version >= 5) {
+          if (ServerVersion >= 5) {
             _enc.Encode(order.BlockOrder);
             _enc.Encode(order.SweepToFill);
             _enc.Encode(order.DisplaySize);
             _enc.Encode(order.TriggerMethod);
-            if (ServerInfo.Version < 38)
+            if (ServerVersion < 38)
               _enc.Encode(false); // Deprecated order.IgnoreRth
             else
               _enc.Encode(order.OutsideRth);
           }
-          if (ServerInfo.Version >= 7)
+          if (ServerVersion >= 7)
             _enc.Encode(order.Hidden);
 
-          if ((ServerInfo.Version >= 8) && (contract.SecurityType == IBSecurityType.Bag)) {
+          if ((ServerVersion >= 8) && (contract.SecurityType == IBSecurityType.Bag)) {
             _enc.Encode(contract.ComboLegs.Count);
             foreach (var leg in contract.ComboLegs) {
               _enc.Encode(leg.ContractId);
@@ -2183,17 +2201,17 @@ namespace Daemaged.IBNet.Client
               _enc.Encode(leg.Exchange);
               _enc.Encode(leg.OpenClose);
 
-              if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SSHORT_COMBO_LEGS) {
+              if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_SSHORT_COMBO_LEGS) {
                 _enc.Encode(leg.ShortSaleSlot);
                 _enc.Encode(leg.DesignatedLocation);
               }
-              if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SSHORTX_OLD)
+              if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_SSHORTX_OLD)
                 _enc.Encode(leg.ExemptCode);
             }
           }
 
           // Send order combo legs for BAG requests
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_ORDER_COMBO_LEGS_PRICE && contract.SecurityType == IBSecurityType.Bag) {
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_ORDER_COMBO_LEGS_PRICE && contract.SecurityType == IBSecurityType.Bag) {
             if (order.OrderComboLegs == null)
               _enc.Encode(0);
             else {
@@ -2203,7 +2221,7 @@ namespace Daemaged.IBNet.Client
             }
           }
 
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SMART_COMBO_ROUTING_PARAMS && contract.SecurityType == IBSecurityType.Bag) {            
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_SMART_COMBO_ROUTING_PARAMS && contract.SecurityType == IBSecurityType.Bag) {            
             if (order.SmartComboRoutingParams == null || order.SmartComboRoutingParams.Count == 0)
               _enc.Encode(0);
             else {
@@ -2215,31 +2233,31 @@ namespace Daemaged.IBNet.Client
             }
           }
 
-          if (ServerInfo.Version >= 9)
+          if (ServerVersion >= 9)
             _enc.Encode(String.Empty); // Deprecated order.SharesAllocation
-          if (ServerInfo.Version >= 10)
+          if (ServerVersion >= 10)
             _enc.Encode(order.DiscretionaryAmt);
-          if (ServerInfo.Version >= 11)
+          if (ServerVersion >= 11)
             _enc.Encode(order.GoodAfterTime);
-          if (ServerInfo.Version >= 12)
+          if (ServerVersion >= 12)
             _enc.Encode(order.GoodTillDate);
-          if (ServerInfo.Version >= 13) {
+          if (ServerVersion >= 13) {
             _enc.Encode(order.FaGroup);
             _enc.Encode(order.FaMethod);
             _enc.Encode(order.FaPercentage);
             _enc.Encode(order.FaProfile);
           }
-          if (ServerInfo.Version >= 18) {
+          if (ServerVersion >= 18) {
             _enc.Encode(order.ShortSaleSlot);
             _enc.Encode(order.DesignatedLocation);
           }
 
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SSHORTX_OLD)
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_SSHORTX_OLD)
             _enc.Encode(order.ExemptCode);
 
-          if (ServerInfo.Version >= 19) {
+          if (ServerVersion >= 19) {
             _enc.Encode(order.OcaType);
-            if (ServerInfo.Version < 38)
+            if (ServerVersion < 38)
               _enc.Encode(false); // Deprecated order.m_rthOnly            
 
             _enc.Encode(order.Rule80A);
@@ -2254,35 +2272,35 @@ namespace Daemaged.IBNet.Client
             _enc.EncodeMax(order.StartingPrice);
             _enc.EncodeMax(order.StockRefPrice);
             _enc.EncodeMax(order.Delta);
-            var stockRangeLower = ((ServerInfo.Version == 26) && (order.OrderType == IBOrderType.Volatility))
+            var stockRangeLower = ((ServerVersion == 26) && (order.OrderType == IBOrderType.Volatility))
                                        ? Double.MaxValue
                                        : order.StockRangeLower;
-            var stockRangeUpper = ((ServerInfo.Version == 26) && (order.OrderType == IBOrderType.Volatility))
+            var stockRangeUpper = ((ServerVersion == 26) && (order.OrderType == IBOrderType.Volatility))
                                        ? Double.MaxValue
                                        : order.StockRangeUpper;
             _enc.EncodeMax(stockRangeLower);
             _enc.EncodeMax(stockRangeUpper);
-            if (ServerInfo.Version >= 22) {
+            if (ServerVersion >= 22) {
               _enc.Encode(order.OverridePercentageConstraints);
             }
-            if (ServerInfo.Version >= 26) {
+            if (ServerVersion >= 26) {
               _enc.EncodeMax(order.Volatility);
               _enc.Encode(order.VolatilityType);
-              if (ServerInfo.Version < 28) {
+              if (ServerVersion < 28) {
                 _enc.Encode(order.DeltaNeutralOrderType == IBOrderType.Market);
               }
               else {
                 _enc.Encode(order.DeltaNeutralOrderType);
                 _enc.EncodeMax(order.DeltaNeutralAuxPrice);
 
-                if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_DELTA_NEUTRAL_CONID && order.DeltaNeutralOrderType != IBOrderType.Empty) {
+                if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_DELTA_NEUTRAL_CONID && order.DeltaNeutralOrderType != IBOrderType.Empty) {
                   _enc.Encode(order.DeltaNeutralContractId);
                   _enc.Encode(order.DeltaNeutralSettlingFirm);
                   _enc.Encode(order.DeltaNeutralClearingAccount);
                   _enc.Encode(order.DeltaNeutralClearingIntent);
                 }
 
-                if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_DELTA_NEUTRAL_OPEN_CLOSE && order.DeltaNeutralOrderType != IBOrderType.Empty) {
+                if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_DELTA_NEUTRAL_OPEN_CLOSE && order.DeltaNeutralOrderType != IBOrderType.Empty) {
                   _enc.Encode(order.DeltaNeutralOpenClose);
                   _enc.Encode(order.DeltaNeutralShortSale);
                   _enc.Encode(order.DeltaNeutralShortSaleSlot);
@@ -2292,7 +2310,7 @@ namespace Daemaged.IBNet.Client
 
               }
               _enc.Encode(order.ContinuousUpdate);
-              if (ServerInfo.Version == 26) {
+              if (ServerVersion == 26) {
                 if (order.OrderType == IBOrderType.Volatility) {
                   _enc.EncodeMax(order.StockRangeLower);
                   _enc.EncodeMax(order.StockRangeUpper);
@@ -2306,16 +2324,16 @@ namespace Daemaged.IBNet.Client
             }
           }
 
-          if (ServerInfo.Version >= 30) { // TRAIL_STOP_LIMIT stop price
+          if (ServerVersion >= 30) { // TRAIL_STOP_LIMIT stop price
               _enc.EncodeMax( order.TrailStopPrice);
           }
           
-          if( ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_TRAILING_PERCENT){
+          if( ServerVersion >= TWSServerInfo.MIN_SERVER_VER_TRAILING_PERCENT){
               _enc.EncodeMax( order.TrailingPercent);
           }
           
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS) {
-        	  if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS2) {
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS) {
+        	  if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS2) {
         	   _enc.EncodeMax(order.ScaleInitLevelSize);
         	   _enc.EncodeMax(order.ScaleSubsLevelSize);
         	  }
@@ -2327,7 +2345,7 @@ namespace Daemaged.IBNet.Client
         	  _enc.EncodeMax(order.ScalePriceIncrement);
           }
 
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS3 && order.ScalePriceIncrement > 0.0 && order.ScalePriceIncrement != Double.MaxValue) {
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS3 && order.ScalePriceIncrement > 0.0 && order.ScalePriceIncrement != Double.MaxValue) {
               _enc.EncodeMax(order.ScalePriceAdjustValue);
               _enc.EncodeMax(order.ScalePriceAdjustInterval);
               _enc.EncodeMax(order.ScaleProfitOffset);
@@ -2337,26 +2355,26 @@ namespace Daemaged.IBNet.Client
               _enc.Encode(order.ScaleRandomPercent);
           }
 
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_HEDGE_ORDERS) {
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_HEDGE_ORDERS) {
         	  _enc.Encode(order.HedgeType);
         	  if (!String.IsNullOrEmpty(order.HedgeType)) {
         	   _enc.Encode(order.HedgeParam);
         	  }
           }
 
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_OPT_OUT_SMART_ROUTING) {
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_OPT_OUT_SMART_ROUTING) {
               _enc.Encode(order.OptOutSmartRouting);
           }
           
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_PTA_ORDERS) {
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_PTA_ORDERS) {
         	  _enc.Encode(order.ClearingAccount);
         	  _enc.Encode(order.ClearingIntent);
           }
           
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_NOT_HELD)
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_NOT_HELD)
         	  _enc.Encode(order.NotHeld);
 
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_UNDER_COMP) {
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_UNDER_COMP) {
         	  if (contract.UnderlyingComponent != null) {
         	   var uc = contract.UnderlyingComponent;
         	   _enc.Encode( true);
@@ -2369,7 +2387,7 @@ namespace Daemaged.IBNet.Client
         	  }
           }
           
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_ALGO_ORDERS) {
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_ALGO_ORDERS) {
         	  _enc.Encode( order.AlgoStrategy ?? String.Empty);
         	  if (!String.IsNullOrEmpty(order.AlgoStrategy)) {
         	   if (order.AlgoParams == null || order.AlgoParams.Count == 0)
@@ -2384,7 +2402,7 @@ namespace Daemaged.IBNet.Client
         	  }
           }
 
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_WHAT_IF_ORDERS)
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_WHAT_IF_ORDERS)
         	  _enc.Encode(order.WhatIf);
         }
         catch (Exception) {
@@ -2405,75 +2423,75 @@ namespace Daemaged.IBNet.Client
     private void CheckServerCompatability(IBContract contract, IBOrder order)
     {
       //Scale Orders Minimum Version is 35
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS)
         if (order.ScaleInitLevelSize != Int32.MaxValue || order.ScalePriceIncrement != Double.MaxValue)
           throw new TWSOutdatedException();
 
       //Minimum Sell Short Combo Leg Order is 35
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SSHORT_COMBO_LEGS)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_SSHORT_COMBO_LEGS)
         if (contract.ComboLegs.Count != 0)
           if (contract.ComboLegs.Any(t => t.ShortSaleSlot != 0 || (!string.IsNullOrEmpty(t.DesignatedLocation))))
             throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_WHAT_IF_ORDERS)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_WHAT_IF_ORDERS)
         if (order.WhatIf)
           throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_UNDER_COMP)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_UNDER_COMP)
         if (contract.UnderlyingComponent != null)
           throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS2)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS2)
         if (order.ScaleSubsLevelSize != Int32.MaxValue)
           throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_ALGO_ORDERS)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_ALGO_ORDERS)
         if (!string.IsNullOrEmpty(order.AlgoStrategy))
           throw new TWSOutdatedException();
 
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_NOT_HELD)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_NOT_HELD)
         if (order.NotHeld)
           throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE)
         if (contract.SecurityIdType != IBSecurityIdType.None || !string.IsNullOrEmpty(contract.SecurityId))
           throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_PLACE_ORDER_CONID)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_PLACE_ORDER_CONID)
         if (contract.ContractId > 0)
           throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SSHORTX)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_SSHORTX)
         if (order.ExemptCode != -1)
           throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SSHORTX)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_SSHORTX)
         if (contract.ComboLegs.Count > 0)
           if (contract.ComboLegs.Any(comboLeg => comboLeg.ExemptCode != -1))
             throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_HEDGE_ORDERS)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_HEDGE_ORDERS)
         if (!String.IsNullOrEmpty(order.HedgeType))
           throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_OPT_OUT_SMART_ROUTING)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_OPT_OUT_SMART_ROUTING)
         if (order.OptOutSmartRouting)
           throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_DELTA_NEUTRAL_CONID)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_DELTA_NEUTRAL_CONID)
         if (order.DeltaNeutralContractId > 0 ||
             !String.IsNullOrEmpty(order.DeltaNeutralSettlingFirm) ||
             !String.IsNullOrEmpty(order.DeltaNeutralClearingAccount) ||
             !String.IsNullOrEmpty(order.DeltaNeutralClearingIntent))
           throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_DELTA_NEUTRAL_OPEN_CLOSE)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_DELTA_NEUTRAL_OPEN_CLOSE)
         if (!String.IsNullOrEmpty(order.DeltaNeutralOpenClose) ||
             order.DeltaNeutralShortSale || order.DeltaNeutralShortSaleSlot > 0 || !String.IsNullOrEmpty(order.DeltaNeutralDesignatedLocation))
           throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS3)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS3)
         if (order.ScalePriceIncrement > 0 && order.ScalePriceIncrement != Double.MaxValue)
           if (order.ScalePriceAdjustValue != Double.MaxValue ||
               order.ScalePriceAdjustInterval != Int32.MaxValue ||
@@ -2484,11 +2502,11 @@ namespace Daemaged.IBNet.Client
               order.ScaleRandomPercent)
             throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_ORDER_COMBO_LEGS_PRICE && contract.SecurityType == IBSecurityType.Bag)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_ORDER_COMBO_LEGS_PRICE && contract.SecurityType == IBSecurityType.Bag)
         if (order.OrderComboLegs.Any(c => c.Price != Double.MaxValue))
           throw new TWSOutdatedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_TRAILING_PERCENT)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_TRAILING_PERCENT)
         if (order.TrailingPercent != Double.MaxValue)
           throw new TWSOutdatedException();
 
@@ -2506,7 +2524,7 @@ namespace Daemaged.IBNet.Client
       const int reqVersion = 1;
 
       try {
-        if (ServerInfo.Version < 21) {
+        if (ServerVersion < 21) {
           OnError(TWSErrors.UPDATE_TWS);
           return;
         }
@@ -2568,7 +2586,7 @@ namespace Daemaged.IBNet.Client
         var requestId = NextValidId;
 
         try {
-          if (ServerInfo.Version < 16)
+          if (ServerVersion < 16)
             throw new TWSOutdatedException();
 
           _enc.Encode(ServerMessage.RequestHistoricalData);
@@ -2584,16 +2602,16 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(contract.PrimaryExchange);
           _enc.Encode(contract.Currency);
           _enc.Encode(contract.LocalSymbol);
-          if (ServerInfo.Version >= 31)
+          if (ServerVersion >= 31)
             _enc.Encode(contract.IncludeExpired ? 1 : 0);
-          if (ServerInfo.Version >= 20) {
+          if (ServerVersion >= 20) {
             _enc.Encode(endDateTime);
             _enc.Encode(barSizeSetting);
           }
           _enc.Encode(durationStr);
           _enc.Encode(useRTH);
           _enc.Encode(whatToShow);
-          if (ServerInfo.Version > 16) {
+          if (ServerVersion > 16) {
             _enc.Encode(formatDate);
           }
           if (IBSecurityType.Bag == contract.SecurityType) {
@@ -2647,14 +2665,14 @@ namespace Daemaged.IBNet.Client
         if (!IsConnected)
           throw new NotConnectedException();
 
-        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SNAPSHOT_MKT_DATA && snapshot)
+        if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_SNAPSHOT_MKT_DATA && snapshot)
           throw new TWSOutdatedException();
 
-        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_UNDER_COMP)
+        if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_UNDER_COMP)
           if (contract.UnderlyingComponent != null)
             throw new TWSOutdatedException();
 
-        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_MKT_DATA_CONID)
+        if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_REQ_MKT_DATA_CONID)
           if (contract.ContractId > 0)
             throw new TWSOutdatedException();
 
@@ -2666,7 +2684,7 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(ServerMessage.RequestMarketData);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_REQ_MKT_DATA_CONID)
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_REQ_MKT_DATA_CONID)
             _enc.Encode(contract.ContractId);
           
           _enc.Encode(contract.Symbol);
@@ -2674,15 +2692,15 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
           _enc.Encode(contract.Strike);
           _enc.Encode(contract.Right);
-          if (ServerInfo.Version >= 15)
+          if (ServerVersion >= 15)
             _enc.Encode(contract.Multiplier);
           _enc.Encode(contract.Exchange);
-          if (ServerInfo.Version >= 14)
+          if (ServerVersion >= 14)
             _enc.Encode(contract.PrimaryExchange);
           _enc.Encode(contract.Currency);
-          if (ServerInfo.Version >= 2)
+          if (ServerVersion >= 2)
             _enc.Encode(contract.LocalSymbol);
-          if (ServerInfo.Version >= 8 && (contract.SecurityType == IBSecurityType.Bag)) {
+          if (ServerVersion >= 8 && (contract.SecurityType == IBSecurityType.Bag)) {
             if (contract.ComboLegs == null || contract.ComboLegs.Count == 0)
               _enc.Encode(0);
             else {
@@ -2695,7 +2713,7 @@ namespace Daemaged.IBNet.Client
               }
             }
           }
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_UNDER_COMP)
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_UNDER_COMP)
           {
             if (contract.UnderlyingComponent != null) {
               _enc.Encode(true);
@@ -2707,7 +2725,7 @@ namespace Daemaged.IBNet.Client
               _enc.Encode(false);
             }
 
-          if (ServerInfo.Version >= 31) {
+          if (ServerVersion >= 31) {
             var sb = new StringBuilder();
             if (genericTickList != null) {
               foreach (var tick in genericTickList)
@@ -2721,7 +2739,7 @@ namespace Daemaged.IBNet.Client
           // we update the request registry
           _marketDataRecords.Add(reqId, new TWSMarketDataSnapshot(contract, reqId));
 
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SNAPSHOT_MKT_DATA)
+          if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_SNAPSHOT_MKT_DATA)
             _enc.Encode(snapshot);
 
           _enc.Flush();
@@ -2763,7 +2781,7 @@ namespace Daemaged.IBNet.Client
         throw new NotConnectedException();
 
       // This feature is only available for versions of TWS >= 13
-      if (ServerInfo.Version < 13)
+      if (ServerVersion < 13)
         throw new TWSOutdatedException();
       
       const int reqVersion = 1;
@@ -2786,7 +2804,7 @@ namespace Daemaged.IBNet.Client
         throw new NotConnectedException();
 
       // This feature is only available for versions of TWS >= 13
-      if (ServerInfo.Version < 13)
+      if (ServerVersion < 13)
         throw new TWSOutdatedException();
 
       const int reqVersion = 1;
@@ -2808,7 +2826,7 @@ namespace Daemaged.IBNet.Client
       // not connected?
       if (!IsConnected)
         throw new NotConnectedException();
-      if (ServerInfo.Version < 24)
+      if (ServerVersion < 24)
         throw new TWSOutdatedException();
 
       const int reqVersion = 1;
@@ -2828,7 +2846,7 @@ namespace Daemaged.IBNet.Client
       // not connected?
       if (!IsConnected)
         throw new NotConnectedException();
-      if (ServerInfo.Version < 24)
+      if (ServerVersion < 24)
         throw new TWSOutdatedException();
 
       const int VERSION = 3;
@@ -2855,11 +2873,11 @@ namespace Daemaged.IBNet.Client
         _enc.EncodeMax(subscription.CouponRateAbove);
         _enc.EncodeMax(subscription.CouponRateBelow);
         _enc.Encode(subscription.ExcludeConvertible);
-        if (ServerInfo.Version >= 25) {
+        if (ServerVersion >= 25) {
           _enc.Encode(subscription.AverageOptionVolumeAbove);
           _enc.Encode(subscription.ScannerSettingPairs);
         }
-        if (ServerInfo.Version >= 27)
+        if (ServerVersion >= 27)
           _enc.Encode(subscription.StockTypeFilter);
       }
       catch (Exception) {
@@ -2874,7 +2892,7 @@ namespace Daemaged.IBNet.Client
       if (!IsConnected)
         throw new NotConnectedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_MARKET_DATA_TYPE)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_REQ_MARKET_DATA_TYPE)
         throw new TWSOutdatedException();
 
 
@@ -2897,7 +2915,7 @@ namespace Daemaged.IBNet.Client
       if (!IsConnected)
         throw new NotConnectedException();
         
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_FUNDAMENTAL_DATA)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_FUNDAMENTAL_DATA)
        throw new TWSOutdatedException();
         
       const int VERSION = 1;
@@ -2929,7 +2947,7 @@ namespace Daemaged.IBNet.Client
       if (!IsConnected)
         throw new NotConnectedException();
       
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_FUNDAMENTAL_DATA)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_FUNDAMENTAL_DATA)
       	throw new TWSOutdatedException();
         
       const int reqVersion = 1;
@@ -2951,7 +2969,7 @@ namespace Daemaged.IBNet.Client
       if (!IsConnected)
         throw new NotConnectedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_CALC_IMPLIED_VOLAT)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_REQ_CALC_IMPLIED_VOLAT)
         throw new TWSOutdatedException();
 
       const int reqVersion = 1;
@@ -2989,7 +3007,7 @@ namespace Daemaged.IBNet.Client
       if (!IsConnected)
         throw new NotConnectedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_CANCEL_CALC_IMPLIED_VOLAT)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_CANCEL_CALC_IMPLIED_VOLAT)
         throw new TWSOutdatedException();
               
       const int reqVersion = 1;
@@ -3011,7 +3029,7 @@ namespace Daemaged.IBNet.Client
       if (!IsConnected)
         throw new NotConnectedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_CALC_OPTION_PRICE)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_REQ_CALC_OPTION_PRICE)
         throw new TWSOutdatedException();
       
       const int reqVersion = 1;
@@ -3050,7 +3068,7 @@ namespace Daemaged.IBNet.Client
       if (!IsConnected)
         throw new NotConnectedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_CANCEL_CALC_OPTION_PRICE)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_CANCEL_CALC_OPTION_PRICE)
         throw new TWSOutdatedException();
         
       const int reqVersion = 1;
@@ -3073,7 +3091,7 @@ namespace Daemaged.IBNet.Client
       if (!IsConnected)
         throw new NotConnectedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_GLOBAL_CANCEL)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_REQ_GLOBAL_CANCEL)
         throw new TWSOutdatedException();
 
       const int VERSION = 1;
@@ -3095,7 +3113,7 @@ namespace Daemaged.IBNet.Client
       // not connected?
       if (!IsConnected)
         throw new NotConnectedException();
-      if (ServerInfo.Version < 34)
+      if (ServerVersion < 34)
         throw new TWSOutdatedException();
 
       const int reqVersion = 1;
@@ -3132,7 +3150,7 @@ namespace Daemaged.IBNet.Client
         if (!IsConnected)          
           throw new NotConnectedException();
 
-        if (ServerInfo.Version < 6)
+        if (ServerVersion < 6)
           throw new TWSOutdatedException();
         
         const int reqVersion = 3;
@@ -3146,12 +3164,12 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
           _enc.Encode(contract.Strike);
           _enc.Encode(contract.Right);
-          if (ServerInfo.Version >= 15)
+          if (ServerVersion >= 15)
             _enc.Encode(contract.Multiplier);
           _enc.Encode(contract.Exchange);
           _enc.Encode(contract.Currency);
           _enc.Encode(contract.LocalSymbol);
-          if (ServerInfo.Version >= 19)
+          if (ServerVersion >= 19)
             _enc.Encode(numRows);
         }
         catch (Exception) {
@@ -3234,7 +3252,7 @@ namespace Daemaged.IBNet.Client
         _enc.Encode(subscribe);
 
         // Send the account code. This will only be used for FA clients
-        if (ServerInfo.Version >= 9) {
+        if (ServerVersion >= 9) {
           _enc.Encode(acctCode);
         }
       }
@@ -3286,11 +3304,11 @@ namespace Daemaged.IBNet.Client
 
         var requestId = NextValidId;
 
-        if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_EXECUTION_DATA_CHAIN)
+        if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_EXECUTION_DATA_CHAIN)
           _enc.Encode(requestId);
 
         // Send the execution rpt filter data
-        if (ServerInfo.Version >= 9) {
+        if (ServerVersion >= 9) {
           _enc.Encode(filter.ClientId);
           _enc.Encode(filter.AcctCode);
 
@@ -3332,7 +3350,7 @@ namespace Daemaged.IBNet.Client
     {
 
 
-      Encoder<
+      TWSMessageDefinitions.RequestContractDetailsMessage.Encode(this, en);
 
 
       // not connected?
@@ -3340,9 +3358,9 @@ namespace Daemaged.IBNet.Client
         throw new NotConnectedException();
 
       // This feature is only available for versions of TWS >=4
-      if (ServerInfo.Version < 4)
+      if (ServerVersion < 4)
         throw new TWSOutdatedException();
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE)
+      if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE)
         if (contract.SecurityIdType != IBSecurityIdType.None || !String.IsNullOrEmpty(contract.SecurityId))
           throw new TWSOutdatedException();
 
@@ -3357,27 +3375,27 @@ namespace Daemaged.IBNet.Client
         if (requestId == 0)
           requestId = NextValidId;
 
-        if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_DATA_CHAIN)
+        if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_DATA_CHAIN)
         {
           _enc.Encode(requestId);
         }
         // send contract fields
-        if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_CONID)
+        if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_CONID)
           _enc.Encode(contract.ContractId);
         _enc.Encode(contract.Symbol);
         _enc.Encode(contract.SecurityType);
         _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
         _enc.Encode(contract.Strike);
         _enc.Encode(contract.Right);
-        if (ServerInfo.Version >= 15) {
+        if (ServerVersion >= 15) {
           _enc.Encode(contract.Multiplier);
         }
         _enc.Encode(contract.Exchange);
         _enc.Encode(contract.Currency);
         _enc.Encode(contract.LocalSymbol);
-        if (ServerInfo.Version >= 31)
+        if (ServerVersion >= 31)
           _enc.Encode(contract.IncludeExpired);
-        if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE) {
+        if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE) {
           _enc.Encode(contract.SecurityIdType);
           _enc.Encode(contract.SecurityId);
         }
@@ -3396,7 +3414,7 @@ namespace Daemaged.IBNet.Client
         throw new NotConnectedException();
 
       // This feature is only available for versions of TWS >= 33
-      if (ServerInfo.Version < 33) {
+      if (ServerVersion < 33) {
         throw new TWSOutdatedException();        
       }
 
@@ -3500,8 +3518,18 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-    public TWSClientInfo ClientInfo { get; private set; }
-    public TWSServerInfo ServerInfo { get; private set; }
+
+    /// <summary>
+    /// Gets the encoding.
+    /// </summary>
+    /// <value>
+    /// The encoding.
+    /// </value>
+    public ITWSEncoding Encoding
+    {
+      get { return _enc; }
+    }
+
     public event EventHandler<TWSClientStatusEventArgs> StatusChanged;
     /// <summary>
     /// Occurs when TWS sends a server generated error.

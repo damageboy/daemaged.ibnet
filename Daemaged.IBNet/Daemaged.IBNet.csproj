@@ -88,7 +88,7 @@
     <Compile Include="Server\TWSServerClientHandler.cs" />
     <Compile Include="Server\TWSServer.cs" />
     <Compile Include="TWSEncoding.cs" />
-    <Compile Include="TWSPlaybackEncoding.cs" />
+    <None Include="TWSPlaybackEncoding.cs" />
     <Compile Include="UnderliyingComponent.cs" />
     <Compile Include="Util\CompiledStaticDictionary.cs" />
     <Compile Include="Util\CompiledStaticSet.cs" />
