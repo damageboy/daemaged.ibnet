@@ -76,7 +76,7 @@ namespace Daemaged.IBNet.Client
 #endif
     private int _clientId;
     private bool _doWork;
-    private ITWSEncoding _enc;
+    internal ITWSEncoding _enc;
     private IPEndPoint _endPoint;
     protected Dictionary<int, TWSMarketDataSnapshot> _marketDataRecords = new Dictionary<int, TWSMarketDataSnapshot>();
     private int _nextValidId;
@@ -2422,7 +2422,7 @@ namespace Daemaged.IBNet.Client
 
     private void CheckServerCompatability(IBContract contract, IBOrder order)
     {
-      //Scale Orders Minimum Version is 35
+      //Scale Orders Minimum ClientVersion is 35
       if (ServerVersion < TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS)
         if (order.ScaleInitLevelSize != Int32.MaxValue || order.ScalePriceIncrement != Double.MaxValue)
           throw new TWSOutdatedException();
@@ -3347,12 +3347,7 @@ namespace Daemaged.IBNet.Client
     }
 
     public virtual int RequestContractDetails(IBContract contract, int requestId = 0)
-    {
-
-
-      TWSMessageDefinitions.RequestContractDetailsMessage.Encode(this, en);
-
-
+    {     
       // not connected?
       if (!IsConnected)
         throw new NotConnectedException();
@@ -3364,47 +3359,55 @@ namespace Daemaged.IBNet.Client
         if (contract.SecurityIdType != IBSecurityIdType.None || !String.IsNullOrEmpty(contract.SecurityId))
           throw new TWSOutdatedException();
 
+      contract.RequestId = requestId == 0 ? NextValidId : requestId;
 
-      const int reqVersion = 6;
+      TWSMsgDefs.ReqContractDetailsMsg.Encode(this, contract);
 
-      try {
-        // send req mkt data msg
-        _enc.Encode(ServerMessage.RequestContractData);
-        _enc.Encode(reqVersion);
+      return contract.RequestId;
 
-        if (requestId == 0)
-          requestId = NextValidId;
 
-        if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_DATA_CHAIN)
-        {
-          _enc.Encode(requestId);
-        }
-        // send contract fields
-        if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_CONID)
-          _enc.Encode(contract.ContractId);
-        _enc.Encode(contract.Symbol);
-        _enc.Encode(contract.SecurityType);
-        _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
-        _enc.Encode(contract.Strike);
-        _enc.Encode(contract.Right);
-        if (ServerVersion >= 15) {
-          _enc.Encode(contract.Multiplier);
-        }
-        _enc.Encode(contract.Exchange);
-        _enc.Encode(contract.Currency);
-        _enc.Encode(contract.LocalSymbol);
-        if (ServerVersion >= 31)
-          _enc.Encode(contract.IncludeExpired);
-        if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE) {
-          _enc.Encode(contract.SecurityIdType);
-          _enc.Encode(contract.SecurityId);
-        }
-        return requestId;
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
-      }
+
+
+      //const int reqVersion = 6;
+
+      //try {
+      //  // send req mkt data msg
+      //  _enc.Encode(ServerMessage.RequestContractData);
+      //  _enc.Encode(reqVersion);
+
+      //  if (requestId == 0)
+      //    requestId = NextValidId;
+
+      //  if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_DATA_CHAIN)
+      //  {
+      //    _enc.Encode(requestId);
+      //  }
+      //  // send contract fields
+      //  if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_CONID)
+      //    _enc.Encode(contract.ContractId);
+      //  _enc.Encode(contract.Symbol);
+      //  _enc.Encode(contract.SecurityType);
+      //  _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
+      //  _enc.Encode(contract.Strike);
+      //  _enc.Encode(contract.Right);
+      //  if (ServerVersion >= 15) {
+      //    _enc.Encode(contract.Multiplier);
+      //  }
+      //  _enc.Encode(contract.Exchange);
+      //  _enc.Encode(contract.Currency);
+      //  _enc.Encode(contract.LocalSymbol);
+      //  if (ServerVersion >= 31)
+      //    _enc.Encode(contract.IncludeExpired);
+      //  if (ServerVersion >= TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE) {
+      //    _enc.Encode(contract.SecurityIdType);
+      //    _enc.Encode(contract.SecurityId);
+      //  }
+      //  return requestId;
+      //}
+      //catch (Exception) {
+      //  Disconnect();
+      //  throw;
+      //}
     }
 
     public virtual void RequestCurrentTime()

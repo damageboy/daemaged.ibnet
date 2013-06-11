@@ -72,9 +72,10 @@ namespace Daemaged.IBNet.Dsl
     Enum,
   }
 
-  internal static class TWSMessageDefinitions
+  internal static class TWSMsgDefs
   {
-    internal static TWSMessage<IBContract> RequestContractDetailsMessage = new TWSMessage<IBContract> {      
+    internal static TWSMessage<IBContract> ReqContractDetailsMsg = new TWSMessage<IBContract> {      
+      { _ => ServerMessage.RequestContractData},
       { _ => 6 },
       { c => c.RequestId, 40},
       { c => c.ContractId, 37 },
@@ -107,7 +108,10 @@ namespace Daemaged.IBNet.Dsl
     private static Expression GenerateFieldEncoder<T>(TWSField field, ParameterExpression clientParam, ParameterExpression tParam)
     {
       var encoder = Expression.PropertyOrField(clientParam, "Encoding");
-      var op = Expression.Call(encoder, GetEncodeMethodInfoForField(field), encoder, GetEncodeParam(field));
+      var op = Expression.Call(encoder, 
+                               GetEncodeMethodInfoForField(field), 
+                               encoder,
+                               GetEncodeParam(tParam, field));
 
       if (field.SupportedSince > 0)
         return
@@ -118,10 +122,11 @@ namespace Daemaged.IBNet.Dsl
       return op;
     }
 
-    private static Expression GetEncodeParam(TWSField field)
+    private static Expression GetEncodeParam(ParameterExpression tParam, TWSField field)
     {
       var lmbd = (LambdaExpression)field.AbstractSelector;
-      return lmbd.Body;      
+      var me = (MemberExpression) lmbd.Body;
+      return Expression.PropertyOrField(tParam, me.Member.Name);
     }
 
     private static MethodInfo GetEncodeMethodInfoForField(TWSField field)
@@ -190,7 +195,7 @@ namespace Daemaged.IBNet.Dsl
     /// <returns></returns>
     public static MethodInfo GetMethodInfo(LambdaExpression expression)
     {
-      MethodCallExpression outermostExpression = expression.Body as MethodCallExpression;
+      var outermostExpression = expression.Body as MethodCallExpression;
 
       if (outermostExpression == null)
       {
@@ -202,12 +207,19 @@ namespace Daemaged.IBNet.Dsl
   }
 
 
-  public static class TWSMessageExtensions
+  internal static class TWSMessageExtensions
   {
     internal static void Encode<T>(this TWSMessage<T> messageTemplate, TWSClient client, T t)
     {
-      var f = TWSEncoderGenerator.GetEncoderFunc<T>(messageTemplate);
-      f(client, t);
+      try {
+        var f = TWSEncoderGenerator.GetEncoderFunc<T>(messageTemplate);
+        f(client, t);
+      }
+
+      catch (Exception) {
+        client.Disconnect();
+        throw;
+      }
     }
   }
 }

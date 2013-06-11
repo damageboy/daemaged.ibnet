@@ -77,17 +77,17 @@ namespace Daemaged.IBNet
       _recordWriter = new BinaryWriter(_recordStream);
     }
 
-    public override TWSServerInfo DecodeServerInfo()
-    {
-      HandlePlaybackMetaData(IBPlaybackMessage.Receive);
-      return base.DecodeServerInfo();
-    }
+    //public override TWSServerInfo DecodeServerInfo()
+    //{
+    //  HandlePlaybackMetaData(IBPlaybackMessage.Receive);
+    //  return base.DecodeServerInfo();
+    //}
 
-    public override void Encode(TWSClientInfo v)
-    {
-      HandlePlaybackMetaData(IBPlaybackMessage.Send);
-      base.Encode(v);
-    }
+    //public override void Encode(TWSClientInfo v)
+    //{
+    //  HandlePlaybackMetaData(IBPlaybackMessage.Send);
+    //  base.Encode(v);
+    //}
 
     public override void Encode(TWSClientId id)
     {

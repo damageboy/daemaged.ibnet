@@ -85,12 +85,12 @@ namespace Daemaged.IBNet.Server
     public virtual TWSServerState State { get; protected set; }
     public virtual TWSServer Server { get; protected set; }
 
-    public virtual TWSServerInfo ServerInfo
+    public virtual int ServerVersion
     {
-      get { return Server.ServerInfo; }
+      get { return Server.ServerVersion; }
     }
 
-    public virtual TWSClientInfo ClientInfo { get; protected set; }
+    public virtual int ClientVersion { get; protected set; }
     public virtual TWSClientId ClientId { get; protected set; }
     private Thread Thread { get; set; }
     public event EventHandler<TWSServerEventArgs> Login;
@@ -258,12 +258,12 @@ namespace Daemaged.IBNet.Server
                                         Right = _enc.DecodeString()
                                       };
 
-        if (ServerInfo.Version >= 15)
+        if (ServerVersion >= 15)
           contract.Multiplier = _enc.DecodeString();
         contract.Exchange = _enc.DecodeString();
         contract.Currency = _enc.DecodeString();
         contract.LocalSymbol = _enc.DecodeString();
-        if (ServerInfo.Version >= 19)
+        if (ServerVersion >= 19)
           numRows = _enc.DecodeInt();
         OnMarketDepthRequest(reqId, contract, numRows);
       }
@@ -303,15 +303,15 @@ namespace Daemaged.IBNet.Server
                                         Strike = _enc.DecodeDouble(),
                                         Right = _enc.DecodeString()
                                       };
-        if (ServerInfo.Version >= 15)
+        if (ServerVersion >= 15)
           contract.Multiplier = _enc.DecodeString();
         contract.Exchange = _enc.DecodeString();
-        if (ServerInfo.Version >= 14)
+        if (ServerVersion >= 14)
           contract.PrimaryExchange = _enc.DecodeString();
         contract.Currency = _enc.DecodeString();
-        if (ServerInfo.Version >= 2)
+        if (ServerVersion >= 2)
           contract.LocalSymbol = _enc.DecodeString();
-        if (ServerInfo.Version >= 8 && (contract.SecurityType == IBSecurityType.Bag)) {
+        if (ServerVersion >= 8 && (contract.SecurityType == IBSecurityType.Bag)) {
           int comboLegCount = _enc.DecodeInt();
           for (int i = 0; i < comboLegCount; i++) {
             var leg = new IBComboLeg {
@@ -324,7 +324,7 @@ namespace Daemaged.IBNet.Server
           }
         }
 
-        if (ServerInfo.Version >= 31) {
+        if (ServerVersion >= 31) {
           string genericTickList = _enc.DecodeString();
           if (!string.IsNullOrEmpty(genericTickList)) {
             var list = new List<IBGenericTickType>();
@@ -357,13 +357,13 @@ namespace Daemaged.IBNet.Server
                                         Strike = _enc.DecodeDouble(),
                                         Right = _enc.DecodeString()
                                       };
-        if (ServerInfo.Version >= 15) {
+        if (ServerVersion >= 15) {
           contract.Multiplier = _enc.DecodeString();
         }
         contract.Exchange = _enc.DecodeString();
         contract.Currency = _enc.DecodeString();
         contract.LocalSymbol = _enc.DecodeString();
-        if (ServerInfo.Version >= 31) {
+        if (ServerVersion >= 31) {
           contract.IncludeExpired = _enc.DecodeBool();
         }
         OnContractDataRequest(contract);
@@ -382,12 +382,12 @@ namespace Daemaged.IBNet.Server
     private void ProcessLogin()
     {
       try {
-        ClientInfo = _enc.DecodeClientInfo();
-        _enc.Encode(ServerInfo);
+        ClientVersion = _enc.DecodeInt();
+        _enc.Encode(ServerVersion);
         _enc.Encode("TWS Local Time is to go fuck yourself");
         ClientId = _enc.DecodeClientId();
         Status = TWSClientStatus.Connected;
-        OnLogin(ClientInfo, ClientId);
+        OnLogin(ClientVersion, ClientId);
       }
       catch (Exception e) {
         Server.OnError(TWSErrors.CONNECT_FAIL);
@@ -395,10 +395,10 @@ namespace Daemaged.IBNet.Server
       }
     }
 
-    private void OnLogin(TWSClientInfo clientInfo, TWSClientId clientId)
+    private void OnLogin(int clientVersion, TWSClientId clientId)
     {
       if (Server != null)
-        Server.OnLogin(this, clientInfo, clientId);
+        Server.OnLogin(this, clientVersion, clientId);
     }
 
     private void OnContractDataRequest(IBContract contract)

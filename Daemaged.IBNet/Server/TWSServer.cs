@@ -65,11 +65,11 @@ namespace Daemaged.IBNet.Server
     {
       _clients = new List<TWSServerClientHandler>();
       _clientCount = 0;
-      ServerInfo = new TWSServerInfo(SERVER_VERSION);
+      ServerVersion = SERVER_VERSION;
       EndPoint = new IPEndPoint(IPAddress.Any, DEFAULT_PORT);
     }
 
-    public TWSServerInfo ServerInfo { get; private set; }
+    public int ServerVersion { get; private set; }
     public TWSServerStatus Status { get; private set; }
 
     public bool IsRunning
@@ -167,7 +167,7 @@ namespace Daemaged.IBNet.Server
 
     public virtual void OnContractDetailsRequest(TWSServerClientHandler client, IBContract contract) {}
 
-    public virtual void OnLogin(TWSServerClientHandler clientState, TWSClientInfo clientInfo, TWSClientId clientId)
+    public virtual void OnLogin(TWSServerClientHandler clientState, int clientVersion, TWSClientId clientId)
     {
       if (Login != null)
         Login(this, new TWSServerLoginEventArgs(clientState));
