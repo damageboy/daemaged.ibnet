@@ -3348,7 +3348,7 @@ namespace Daemaged.IBNet.Client
 
     public virtual int RequestContractDetails(IBContract contract, int requestId = 0)
     {     
-      // not connected?
+      // not connected?E
       if (!IsConnected)
         throw new NotConnectedException();
 

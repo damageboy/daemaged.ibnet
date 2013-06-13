@@ -108,10 +108,9 @@ namespace Daemaged.IBNet.Dsl
     private static Expression GenerateFieldEncoder<T>(TWSField field, ParameterExpression clientParam, ParameterExpression tParam)
     {
       var encoder = Expression.PropertyOrField(clientParam, "Encoding");
-      var op = Expression.Call(encoder, 
-                               GetEncodeMethodInfoForField(field), 
-                               encoder,
-                               GetEncodeParam(tParam, field));
+      var encoderMethod = GetEncodeMethodInfoForField(field);
+      var encodedValue = GetEncodeParam(tParam, field);         
+      var op = Expression.Call(encoder, encoderMethod, encoder, encodedValue);
 
       if (field.SupportedSince > 0)
         return
@@ -125,12 +124,21 @@ namespace Daemaged.IBNet.Dsl
     private static Expression GetEncodeParam(ParameterExpression tParam, TWSField field)
     {
       var lmbd = (LambdaExpression)field.AbstractSelector;
-      var me = (MemberExpression) lmbd.Body;
-      return Expression.PropertyOrField(tParam, me.Member.Name);
+
+      switch (lmbd.Body.NodeType)
+      {
+        case ExpressionType.Convert:
+          return ((UnaryExpression) lmbd.Body).Operand;          
+        case ExpressionType.MemberAccess:
+          var me = (MemberExpression) lmbd.Body;
+          return Expression.PropertyOrField(tParam, me.Member.Name);
+      }
+      throw new NotSupportedException("This message encoder is not supported");
     }
 
     private static MethodInfo GetEncodeMethodInfoForField(TWSField field)
     {
+      
       switch (field.Type)
       {
         case TWSType.Boolean:
@@ -145,12 +153,26 @@ namespace Daemaged.IBNet.Dsl
           return SymbolExtensions.GetMethodInfo<ITWSEncoding>(e => e.EncodeExpiryDate(DateTime.MinValue));
         case TWSType.Enum:
           var lmbd = (LambdaExpression) field.AbstractSelector;
-          var member = (MemberExpression) lmbd.Body;
-          return typeof (ITWSEncoding).GetMethod("Encode", new[] {member.Type});
+          Type encodedType = null;
+
+          switch (lmbd.Body.NodeType) {
+            case ExpressionType.Convert:
+              encodedType = ((UnaryExpression) lmbd.Body).Operand.Type;
+              break;
+            case ExpressionType.MemberAccess:
+              encodedType = ((MemberExpression) lmbd.Body).Type;
+              break;
+          }
+          
+          return typeof (ITWSEncoding).GetMethod("Encode", new[] {encodedType});
         default:
           throw new ArgumentOutOfRangeException();
       }
     }
+  }
+
+  internal class brea
+  {
   }
 
   public static class SymbolExtensions

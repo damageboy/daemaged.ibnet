@@ -17,6 +17,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Daemaged.IBNet.IntegrationTests", "Daemaged.IBNet.IntegrationTests\Daemaged.IBNet.IntegrationTests.csproj", "{04FFA570-5CEF-4804-B1EA-5F58E7EE721C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Daemaged.IBNet.Tests", "Daemaged.IBNet.Tests\Daemaged.IBNet.Tests.csproj", "{395DAF80-EFF4-4DB3-8931-B3E1AD3A3FA5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +39,14 @@ Global
 		{FA003657-A9CE-4DDA-BB98-07854490ADFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA003657-A9CE-4DDA-BB98-07854490ADFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA003657-A9CE-4DDA-BB98-07854490ADFF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{04FFA570-5CEF-4804-B1EA-5F58E7EE721C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{04FFA570-5CEF-4804-B1EA-5F58E7EE721C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{04FFA570-5CEF-4804-B1EA-5F58E7EE721C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{04FFA570-5CEF-4804-B1EA-5F58E7EE721C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{395DAF80-EFF4-4DB3-8931-B3E1AD3A3FA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{395DAF80-EFF4-4DB3-8931-B3E1AD3A3FA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{395DAF80-EFF4-4DB3-8931-B3E1AD3A3FA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{395DAF80-EFF4-4DB3-8931-B3E1AD3A3FA5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

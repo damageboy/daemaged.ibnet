@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Daemaged.IBNet")]
-[assembly: AssemblyDescription("IB TWS api for .NET")]
+[assembly: AssemblyTitle("Daemaged.IBNet.Tests")]
+[assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Dan Shechter")]
-[assembly: AssemblyProduct("IBNet")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("Daemaged.IBNet.Tests")]
 [assembly: AssemblyCopyright("Copyright ©  2013")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("2207b926-9637-4211-81e5-03914e5b2047")]
+[assembly: Guid("73a014c9-bf20-4971-a566-d25cc9400af6")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -32,8 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("9.6.8.6")]
-[assembly: AssemblyFileVersion("9.6.8.6")]
-
-[assembly: InternalsVisibleTo("Daemaged.IBNet.Tests")]
-[assembly: InternalsVisibleTo("Daemaged.IBNet.IntegrationTests")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]

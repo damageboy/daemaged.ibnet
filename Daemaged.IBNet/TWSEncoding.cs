@@ -42,7 +42,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
@@ -55,7 +54,7 @@ namespace Daemaged.IBNet
 
   public class TWSEncoding : ITWSEncoding
   {
-    private class EnumEncDec
+    internal class EnumEncDec
     {
       private readonly IDictionary<int, string> _enumSerializares;
       private readonly IDictionary<string, int> _enumDeserializares;
@@ -92,7 +91,7 @@ namespace Daemaged.IBNet
     private const string IB_EXPIRY_DATE_FORMAT = "yyyyMMdd";
     private readonly string NUMBER_DECIMAL_SEPARATOR;
 
-    private static readonly Dictionary<Type, EnumEncDec> _enumDecoders;
+    internal static readonly Dictionary<Type, EnumEncDec> _enumDecoders;
 
     protected Stream _stream;    
 
