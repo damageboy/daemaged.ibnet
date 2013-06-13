@@ -119,7 +119,10 @@ namespace Daemaged.IBNet.Client
 
     public TWSClient(string host, int port) : this()
     {
-      _endPoint = new IPEndPoint(Dns.GetHostEntry(host).AddressList[0], port);
+      var address = Dns.GetHostEntry(host).AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);      
+      if (address == null)
+        throw new ArgumentException(string.Format("could not resolve host {0}", host), "host");
+      _endPoint = new IPEndPoint(address, port);
     }
 
     #endregion
