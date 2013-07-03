@@ -995,7 +995,7 @@ namespace Daemaged.IBNet.Client
 
       id = NextValidId;
       _asyncCalls.Add(id, completed);      
-      RequestContractDetails(c, id);      
+      RequestContractDetails(c, id);
       await completed.Task;
       _asyncCalls.Remove(id);
       return results;
@@ -1131,30 +1131,29 @@ namespace Daemaged.IBNet.Client
       }
       else {
 #if NET_4_5
-        ProgressiveTaskCompletionSource<object> completion = null;
+        IFaultable completion = null;
 
-        try
-        {
+        try {
 #endif
           var id = _enc.DecodeInt();
 #if NET_4_5
-          IFaultable tmp;
-          if (_asyncCalls.TryGetValue(id, out tmp))
-            completion = (ProgressiveTaskCompletionSource<object>) tmp;
+          
+          _asyncCalls.TryGetValue(id, out completion);
+            
 #endif
           var errorCode = _enc.DecodeInt();
           var message = _enc.DecodeString();
           var twsError = new TWSError(errorCode, message);
 #if NET_4_5
           if (completion != null)
-            completion.SetException(new TWSServerException(twsError));
+            completion.TrySetException(new TWSServerException(twsError));
           else
 #endif
             OnError(id, twsError, String.Empty);
 #if NET_4_5
         } catch (Exception e) {
           if (completion != null)
-            completion.SetException(e);
+            completion.TrySetException(e);
           throw;
         }
 #endif
