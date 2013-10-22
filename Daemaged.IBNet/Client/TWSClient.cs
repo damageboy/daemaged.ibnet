@@ -1,30 +1,29 @@
 ﻿#region Copyright (c) 2007 by Dan Shechter
-
 ////////////////////////////////////////////////////////////////////////////////////////
 ////
 //  IBNet, an Interactive Brokers TWS .NET Client & Server implmentation
 //  by Dan Shechter
 ////////////////////////////////////////////////////////////////////////////////////////
 //  License: MPL 1.1/GPL 2.0/LGPL 2.1
-//  
-//  The contents of this file are subject to the Mozilla Public License Version 
-//  1.1 (the "License"); you may not use this file except in compliance with 
-//  the License. You may obtain a copy of the License at 
+//
+//  The contents of this file are subject to the Mozilla Public License Version
+//  1.1 (the "License"); you may not use this file except in compliance with
+//  the License. You may obtain a copy of the License at
 //  http://www.mozilla.org/MPL/
-//  
+//
 //  Software distributed under the License is distributed on an "AS IS" basis,
 //  WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 //  for the specific language governing rights and limitations under the
 //  License.
-//  
+//
 //  The Original Code is any part of this file that is not marked as a contribution.
-//  
+//
 //  The Initial Developer of the Original Code is Dan Shecter.
 //  Portions created by the Initial Developer are Copyright (C) 2007
 //  the Initial Developer. All Rights Reserved.
-//  
+//
 //  Contributor(s): None.
-//  
+//
 //  Alternatively, the contents of this file may be used under the terms of
 //  either the GNU General Public License Version 2 or later (the "GPL"), or
 //  the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
@@ -37,8 +36,7 @@
 //  the provisions above, a recipient may use your version of this file under
 //  the terms of any one of the MPL, the GPL or the LGPL.
 ////////////////////////////////////////////////////////////////////////////////////////
-
-#endregion
+#endregion Copyright (c) 2007 by Dan Shechter
 
 using System;
 using System.Collections.Concurrent;
@@ -50,10 +48,10 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+
 #if NET_4_5
 using System.Threading.Tasks;
 using Daemaged.IBNet.Util;
-
 #endif
 
 namespace Daemaged.IBNet.Client
@@ -89,10 +87,12 @@ namespace Daemaged.IBNet.Client
     private Thread _thread;
     private string _twsTime;
     private string NUMBER_DECIMAL_SEPARATOR;
-    
 
     #region Constructors
 
+    /// <summary>
+    /// Construct a new TWSClient object for connecting to IB's Trader WorkStation
+    /// </summary>
     public TWSClient()
     {
       _tcpClient = null;
@@ -119,13 +119,12 @@ namespace Daemaged.IBNet.Client
 
     public TWSClient(string host, int port) : this()
     {
-      var address = Dns.GetHostEntry(host).AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);      
+      var address = Dns.GetHostEntry(host).AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
       if (address == null)
         throw new ArgumentException(string.Format("could not resolve host {0}", host), "host");
       _endPoint = new IPEndPoint(address, port);
     }
-
-    #endregion
+    #endregion Constructors
 
     #region Connect/Disconnect
 
@@ -154,56 +153,56 @@ namespace Daemaged.IBNet.Client
         }
         try {
           _tcpClient = new TcpClient();
-          _tcpClient.Connect(_endPoint);
           _tcpClient.NoDelay = true;
+          _tcpClient.Connect(_endPoint);
 
-          if (RecordForPlayback) {
-            if (_recordStream == null)
-              _recordStream = SetupDefaultRecordStream();
+          lock (_tcpClient) {
+            if (RecordForPlayback) {
+              if (_recordStream == null)
+                _recordStream = SetupDefaultRecordStream();
 
-            _enc = new TWSPlaybackRecorderEncoding(new BufferedReadStream(_tcpClient.GetStream()), _recordStream);
-          }
-          else
-            _enc = new TWSEncoding(new BufferedReadStream(_tcpClient.GetStream()));
-
-
-          _enc.Encode(ClientInfo);
-          _enc.Flush();
-          _doWork = true;
-
-          // Only create a reader thread if this Feed IS NOT reconnecting
-          if (!_reconnect) {
-            _thread = new Thread(ProcessMessages)
-              {
-                IsBackground = true, 
-                Name = "IBReader"
-              };
-          }
-          // Get the server version
-          ServerInfo = _enc.DecodeServerInfo();
-          if (ServerInfo.Version >= 20) {
-            _twsTime = _enc.DecodeString();
-          }
-
-          if (ServerInfo.Version < TWSServerInfo.SERVER_VERSION)
-          {
-            Disconnect();
-            throw new Exception("Server version is too low, please update the TWS server");
-          }
-
-          // Send the client id
-          if (ServerInfo.Version >= 3) {
-            if (clientId == -1) {
-              if (_tcpClient.Client.LocalEndPoint is IPEndPoint) {
-                var p = _tcpClient.Client.LocalEndPoint as IPEndPoint;
-                byte[] ab = p.Address.GetAddressBytes();
-                clientId = ab[ab.Length - 1] << 16 | p.Port;
-              }
-              else
-                clientId = new Random().Next();
+              _enc = new TWSPlaybackRecorderEncoding(new BufferedReadStream(_tcpClient.GetStream()), _recordStream);
             }
-            var id = new TWSClientId(clientId);
-            _enc.Encode(id);
+            else
+              _enc = new TWSEncoding(new BufferedReadStream(_tcpClient.GetStream()));
+
+            _enc.Encode(ClientInfo);
+            _enc.Flush();
+            _doWork = true;
+
+            // Only create a reader thread if this Feed IS NOT reconnecting
+            if (!_reconnect) {
+              _thread = new Thread(ProcessMessages) {
+                  IsBackground = true,
+                  Name = "IBReader"
+                };
+            }
+            // Get the server version
+            ServerInfo = _enc.DecodeServerInfo();
+            if (ServerInfo.Version >= 20)
+            {
+              _twsTime = _enc.DecodeString();
+            }
+
+            if (ServerInfo.Version < TWSServerInfo.SERVER_VERSION) {
+              Disconnect();
+              throw new Exception("Server version is too low, please update the TWS server");
+            }
+
+            // Send the client id
+            if (ServerInfo.Version >= 3) {
+              if (clientId == -1) {
+                if (_tcpClient.Client.LocalEndPoint is IPEndPoint) {
+                  var p = _tcpClient.Client.LocalEndPoint as IPEndPoint;
+                  byte[] ab = p.Address.GetAddressBytes();
+                  clientId = ab[ab.Length - 1] << 16 | p.Port;
+                }
+                else
+                  clientId = new Random().Next();
+              }
+              var id = new TWSClientId(clientId);
+              _enc.Encode(id);
+            }
           }
 
           // Only start the thread if this Feed IS NOT reconnecting
@@ -225,21 +224,25 @@ namespace Daemaged.IBNet.Client
     /// </summary>
     public void Disconnect()
     {
-      if (!IsConnected)
-        return;
+      lock (_tcpClient) {
+        if (!IsConnected)
+          return;
 
-      lock (this) {
-        _doWork = false;
-        if (_tcpClient != null)
-          _tcpClient.Close();
-        _thread = null;
-        _tcpClient = null;
-        _stream = null;
-        if (RecordStream != null) {
-          RecordStream.Flush();
-          RecordStream.Close();
+        lock (_tcpClient) {
+          lock (this) {
+            _doWork = false;
+            if (_tcpClient != null)
+              _tcpClient.Close();
+            _thread = null;
+            _tcpClient = null;
+            _stream = null;
+            if (RecordStream != null) {
+              RecordStream.Flush();
+              RecordStream.Close();
+            }
+            OnStatusChanged(Status = TWSClientStatus.Disconnected);
+          }
         }
-        OnStatusChanged(Status = TWSClientStatus.Disconnected);
       }
     }
 
@@ -258,7 +261,7 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-    #endregion
+    #endregion Connect/Disconnect
 
     #region Cancel Messages
 
@@ -268,12 +271,12 @@ namespace Daemaged.IBNet.Client
     /// <param name="reqId">The scanner subscription request id</param>
     public void CancelScannerSubscription(int reqId)
     {
-      lock (this) {
+      lock (_tcpClient) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
 
-        if (ServerInfo.Version < 24) 
+        if (ServerInfo.Version < 24)
           throw new TWSOutdatedException();
 
         const int reqVersion = 1;
@@ -297,7 +300,7 @@ namespace Daemaged.IBNet.Client
     /// <param name="reqId">The historical data subscription request id</param>
     public void CancelHistoricalData(int reqId)
     {
-      lock (this) {
+      lock (_tcpClient) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -322,7 +325,7 @@ namespace Daemaged.IBNet.Client
 
     public void CancelMarketData(int reqId)
     {
-      lock (this) {
+      lock (_tcpClient) {
         if (!IsConnected)
           throw new NotConnectedException();
         const int reqVersion = 1;
@@ -340,7 +343,7 @@ namespace Daemaged.IBNet.Client
 
     public void CancelMarketDepth(int reqId)
     {
-      lock (this) {
+      lock (_tcpClient) {
         if (!IsConnected)
           throw new NotConnectedException();
         if (ServerInfo.Version < 6) {
@@ -362,7 +365,7 @@ namespace Daemaged.IBNet.Client
 
     public void CancelNewsBulletins()
     {
-      lock (this) {
+      lock (_tcpClient) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -381,7 +384,6 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-
     /// <summary>
     /// Cancels an order previously submitted through the client to TWS
     /// </summary>
@@ -389,7 +391,7 @@ namespace Daemaged.IBNet.Client
     /// <exception cref="Daemaged.IBNet.Client.NotConnectedException"></exception>
     public void CancelOrder(int orderId)
     {
-      lock (this) {
+      lock (_tcpClient) {
         if (!IsConnected)
           throw new NotConnectedException();
         const int reqVersion = 1;
@@ -407,29 +409,31 @@ namespace Daemaged.IBNet.Client
 
     public void CancelRealTimeBars(int reqId)
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REAL_TIME_BARS) {
-        OnError(TWSErrors.UPDATE_TWS);
-        return;
-      }
+        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REAL_TIME_BARS) {
+          OnError(TWSErrors.UPDATE_TWS);
+          return;
+        }
 
-      const int reqVersion = 1;
+        const int reqVersion = 1;
 
-      // send cancel mkt data msg
-      try {
-        _enc.Encode(ServerMessage.CancelHistoricalData);
-        _enc.Encode(reqVersion);
-        _enc.Encode(reqId);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
+        // send cancel mkt data msg
+        try {
+          _enc.Encode(ServerMessage.CancelHistoricalData);
+          _enc.Encode(reqVersion);
+          _enc.Encode(reqId);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
     }
-    #endregion
+
+    #endregion Cancel Messages
 
     #region Event Notifiers
 
@@ -448,10 +452,9 @@ namespace Daemaged.IBNet.Client
       });
     }
 
-
     protected virtual void OnError(TWSError error)
     {
-      OnError(TWSErrors.NO_VALID_ID, error);      
+      OnError(TWSErrors.NO_VALID_ID, error);
     }
 
     protected virtual void OnError(int reqId, TWSError error, string extraMessage = null)
@@ -470,7 +473,6 @@ namespace Daemaged.IBNet.Client
           Message = extraMessage,
         });
       }
-
 
       if (OrderChanged != null) {
         OrderRecord or;
@@ -502,10 +504,10 @@ namespace Daemaged.IBNet.Client
     {
       if (TickPrice != null)
         TickPrice(this, new TWSTickPriceEventArgs(this) {
-          TickerId = reqId, 
-          TickType = tickType, 
-          Price = price, 
-          Size = size, 
+          TickerId = reqId,
+          TickType = tickType,
+          Price = price,
+          Size = size,
           CanAutoExecute = canAutoExecute
         });
 
@@ -570,8 +572,8 @@ namespace Daemaged.IBNet.Client
 
       if (TickSize != null)
         TickSize(this, new TWSTickSizeEventArgs(this) {
-          TickerId = reqId, 
-          TickType = tickType, 
+          TickerId = reqId,
+          TickType = tickType,
           Size = size
         });
 
@@ -648,11 +650,11 @@ namespace Daemaged.IBNet.Client
     {
       if (TickOptionComputation != null)
         TickOptionComputation(this, new TWSTickOptionComputationEventArgs(this) {
-          RequestId = reqId, 
+          RequestId = reqId,
           TickType = tickType,
-          ImpliedVol = impliedVol, 
-          Delta = delta, 
-          OptionPrice = optionPrice, 
+          ImpliedVol = impliedVol,
+          Delta = delta,
+          OptionPrice = optionPrice,
           PVDividend = pvDividend,
           Gamma = gamma,
           Vega = vega,
@@ -698,15 +700,15 @@ namespace Daemaged.IBNet.Client
     {
       if (TickEFP != null)
         TickEFP(this, new TWSTickEFPEventArgs(this) {
-          TickerId = reqId, 
-          TickType = tickType, 
-          BasisPoints = basisPoints, 
+          TickerId = reqId,
+          TickType = tickType,
+          BasisPoints = basisPoints,
           FormattedBasisPoints = formattedBasisPoints,
-          ImpliedFuturesPrice = impliedFuturesPrice, 
-          HoldDays = holdDays, 
+          ImpliedFuturesPrice = impliedFuturesPrice,
+          HoldDays = holdDays,
           FutureExpiry = futureExpiry,
-          DividendImpact = dividendImpact, 
-          DividendsToExpiry = dividendsToExpiry    
+          DividendImpact = dividendImpact,
+          DividendsToExpiry = dividendsToExpiry
         });
     }
 
@@ -714,8 +716,8 @@ namespace Daemaged.IBNet.Client
     {
       if (TickString != null)
         TickString(this, new TWSTickStringEventArgs(this) {
-          RequestId = reqId, 
-          TickType = tickType, 
+          RequestId = reqId,
+          TickType = tickType,
           Value = value
         });
     }
@@ -732,27 +734,25 @@ namespace Daemaged.IBNet.Client
       if (RealtimeBar != null)
         RealtimeBar(this, new TWSRealtimeBarEventArgs(this) {
           RequestId = reqId,
-          Time = time, 
-          Open = open, 
+          Time = time,
+          Open = open,
           High = high,
-          Low = low, 
-          Close = close, 
-          Volume = volume, 
-          Wap = wap, 
+          Low = low,
+          Close = close,
+          Volume = volume,
+          Wap = wap,
           Count = count
-        });                      
+        });
     }
-
 
     private void OnTickGeneric(int reqId, IBTickType tickType, double value)
     {
       if (TickGeneric != null)
         TickGeneric(this, new TWSTickGenericEventArgs(this) {
-          TickerId = reqId, 
-          TickType = tickType, 
+          TickerId = reqId,
+          TickType = tickType,
           Value = value,
         });
-
 
       TWSMarketDataSnapshot record;
       if (!_marketDataRecords.TryGetValue(reqId, out record)) {
@@ -794,9 +794,9 @@ namespace Daemaged.IBNet.Client
     {
       if (OpenOrder != null)
         OpenOrder(this, new TWSOpenOrderEventArgs(this) {
-          OrderId = orderId, 
-          Order = order, 
-          Contract = contract            
+          OrderId = orderId,
+          Order = order,
+          Contract = contract
         });
 
       if (OrderChanged != null) {
@@ -811,7 +811,6 @@ namespace Daemaged.IBNet.Client
           });
         }
       }
-
     }
 
     protected void OnBondContractDetails(int reqId, IBContractDetails contract)
@@ -830,6 +829,7 @@ namespace Daemaged.IBNet.Client
     }
 
     protected void OnManagedAccounts(string accountList) {}
+
     protected void OnReceiveFA(int faDataType, string xml) {}
 
     protected void OnScannerData(int reqId, int rank, IBContractDetails contract, string s, string distance, string benchmark, string projection)
@@ -838,9 +838,9 @@ namespace Daemaged.IBNet.Client
         return;
       ScannerData(this, new TWSScannerDataEventArgs(this) {
           RequestId = reqId,
-          Contract = contract, 
+          Contract = contract,
           Rank = rank,
-          Distance = distance,          
+          Distance = distance,
           Benchmark = benchmark,
           Projection = projection,
         });
@@ -852,8 +852,11 @@ namespace Daemaged.IBNet.Client
         return;
       ScannerParameters(this, new TWSScannerParametersEventArgs(this) { Xml = xml });
     }
+
     protected void OnUpdateAccountTime(string timestamp) {}
+
     protected void OnUpdateAccountValue(string key, string val, string cur, string accountName) {}
+
     protected void OnUpdateNewsBulletin(int newsMsgId, int newsMsgType, string newsMessage, string originatingExch) {}
 
     protected void OnUpdatePortfolio(IBContract contract, int position, double marketPrice, double marketValue,
@@ -861,13 +864,13 @@ namespace Daemaged.IBNet.Client
     {
       if (UpdatePortfolio != null)
         UpdatePortfolio(this, new TWSUpdatePortfolioEventArgs(this) {
-          Contract = contract, 
-          Position = position, 
-          MarketPrice = marketPrice, 
-          MarketValue = marketValue, 
+          Contract = contract,
+          Position = position,
+          MarketPrice = marketPrice,
+          MarketValue = marketValue,
           AverageCost = averageCost,
-          UnrealizedPnL = unrealizedPNL, 
-          RealizedPnL = realizedPNL, 
+          UnrealizedPnL = unrealizedPNL,
+          RealizedPnL = realizedPNL,
           AccountName = accountName,
       });
     }
@@ -943,6 +946,7 @@ namespace Daemaged.IBNet.Client
     private void OnFundamentalData(int reqId, string data)
     {
     }
+
     private void OnContractDetailsEnd(int reqId)
     {
       if (ContractDetails == null)
@@ -953,6 +957,7 @@ namespace Daemaged.IBNet.Client
         ContractDetails = null,
       });
     }
+
     private void OnOpenOrderEnd()
     {
       if (OpenOrder == null)
@@ -963,15 +968,19 @@ namespace Daemaged.IBNet.Client
         Order = null,
       });
     }
+
     private void OnAccountDownloadEnd(string accountName)
     {
     }
+
     private void OnExecutionDataEnd(int reqId)
     {
     }
+
     private void OnTickSnapshotEnd(int reqId)
     {
     }
+
     private void OnDeltaNuetralValidation(int reqId, UnderliyingComponent underComp)
     {
     }
@@ -983,10 +992,12 @@ namespace Daemaged.IBNet.Client
     private void OnMarketDataType(int reqId, int marketDataType)
     {
     }
-    #endregion
+
+    #endregion Event Notifiers
 
     #region Synchronized Request Wrappers
 #if NET_4_5
+
     public async Task<IList<IBContractDetails>> GetContractDetailsAsync(IBContract c)
     {
       var id = -1;
@@ -994,16 +1005,18 @@ namespace Daemaged.IBNet.Client
       var completed = new ProgressiveTaskCompletionSource<List<IBContractDetails>> {Value = results};
 
       id = NextValidId;
-      _asyncCalls.Add(id, completed);      
+      _asyncCalls.Add(id, completed);
       RequestContractDetails(c, id);
       await completed.Task;
       _asyncCalls.Remove(id);
       return results;
     }
+
 #endif
-    #endregion
+    #endregion Synchronized Request Wrappers
 
     #region Raw Server Mesage Processing
+
     private void ProcessTickPrice()
     {
       var version = _enc.DecodeInt();
@@ -1076,7 +1089,6 @@ namespace Daemaged.IBNet.Client
         WhyHeld = whyHeld
       };
 
-
       OnOrderStatus(orderId, newStatus);
     }
 
@@ -1121,7 +1133,6 @@ namespace Daemaged.IBNet.Client
       OnTickGeneric(reqId, tickType, value);
     }
 
-
     private void ProcessErrorMessage()
     {
       var version = _enc.DecodeInt();
@@ -1137,9 +1148,9 @@ namespace Daemaged.IBNet.Client
 #endif
           var id = _enc.DecodeInt();
 #if NET_4_5
-          
+
           _asyncCalls.TryGetValue(id, out completion);
-            
+
 #endif
           var errorCode = _enc.DecodeInt();
           var message = _enc.DecodeString();
@@ -1161,11 +1172,10 @@ namespace Daemaged.IBNet.Client
     }
 
     private void ProcessOpenOrder()
-    {     
+    {
       // read version
       var version = _enc.DecodeInt();
       var order = new IBOrder { OrderId = _enc.DecodeInt() };
-      
 
       // read contract fields
       var contract = new IBContract {
@@ -1203,7 +1213,7 @@ namespace Daemaged.IBNet.Client
           order.IgnoreRth = _enc.DecodeInt() == 1;
         else
           order.OutsideRth = _enc.DecodeInt() == 1;
-       
+
         order.Hidden = _enc.DecodeBool();
         order.DiscretionaryAmt = _enc.DecodeDouble();
       }
@@ -1231,7 +1241,7 @@ namespace Daemaged.IBNet.Client
         order.ShortSaleSlot = _enc.DecodeInt();
         order.DesignatedLocation = _enc.DecodeString();
         if (ServerInfo.Version == 51)
-          _enc.DecodeInt(); // exemptCode        
+          _enc.DecodeInt(); // exemptCode
         else if (version >= 23)
           order.ExemptCode = _enc.DecodeInt();
 
@@ -1299,7 +1309,7 @@ namespace Daemaged.IBNet.Client
 
       if (version >= 30)
         order.TrailingPercent = _enc.DecodeDoubleMax();
-      
+
       if (version >= 14) {
         order.BasisPoints = _enc.DecodeDouble();
         order.BasisPointsType = _enc.DecodeInt();
@@ -1320,14 +1330,14 @@ namespace Daemaged.IBNet.Client
               ShortSaleSlot = _enc.DecodeEnum<IBShortSaleSlot>(),
               DesignatedLocation = _enc.DecodeString(),
               ExemptCode = _enc.DecodeInt(),
-            });         
+            });
         }
 
         var orderComboLegsCount = _enc.DecodeInt();
         if (orderComboLegsCount > 0) {
           order.OrderComboLegs = new List<IBOrderComboLeg>(orderComboLegsCount);
           for (var i = 0; i < orderComboLegsCount; ++i)
-            order.OrderComboLegs.Add(new IBOrderComboLeg { Price = _enc.DecodeDoubleMax() });            
+            order.OrderComboLegs.Add(new IBOrderComboLeg { Price = _enc.DecodeDoubleMax() });
         }
       }
 
@@ -1337,7 +1347,7 @@ namespace Daemaged.IBNet.Client
           order.SmartComboRoutingParams = new List<IBTagValue>(smartComboRoutingParamsCount);
           for (var i = 0; i < smartComboRoutingParamsCount; ++i)
             order.SmartComboRoutingParams.Add(new IBTagValue {
-                Tag = _enc.DecodeString(), 
+                Tag = _enc.DecodeString(),
                 Value = _enc.DecodeString()
               });
         }
@@ -1393,7 +1403,6 @@ namespace Daemaged.IBNet.Client
             Delta = _enc.DecodeDouble(),
             Price = _enc.DecodeDouble()
           };
-          
         }
       }
 
@@ -1401,15 +1410,15 @@ namespace Daemaged.IBNet.Client
       {
         order.AlgoStrategy = _enc.DecodeString();
         if (!String.IsNullOrEmpty(order.AlgoStrategy))
-        {          
+        {
           var algoParamsCount = _enc.DecodeInt();
           if (algoParamsCount > 0) {
             order.AlgoParams = new List<IBTagValue>(algoParamsCount);
-            for (var i = 0; i < algoParamsCount; ++i) 
+            for (var i = 0; i < algoParamsCount; ++i)
               order.AlgoParams.Add(new IBTagValue {
                 Tag = _enc.DecodeString(),
                 Value = _enc.DecodeString(),
-              });              
+              });
           }
         }
       }
@@ -1417,7 +1426,6 @@ namespace Daemaged.IBNet.Client
       var orderState = new IBOrderState();
 
       if (version >= 16) {
-
         order.WhatIf = _enc.DecodeBool();
 
         orderState.Status = _enc.DecodeEnum<IBOrderStatus>();
@@ -1568,10 +1576,10 @@ namespace Daemaged.IBNet.Client
           completion.Value.Add(contractDetails);
         else
 #endif
-          OnContractDetails(reqId, contractDetails);          
+          OnContractDetails(reqId, contractDetails);
 #if NET_4_5
       } catch (Exception e) {
-        if (completion != null)          
+        if (completion != null)
           completion.SetException(e);
         throw;
       }
@@ -1694,7 +1702,7 @@ namespace Daemaged.IBNet.Client
         var endDateStr = _enc.DecodeString();
         startDateTime = DateTime.ParseExact(startDateStr, IB_DATE_FORMAT, CultureInfo.InvariantCulture);
         endDateTime = DateTime.ParseExact(endDateStr, IB_DATE_FORMAT, CultureInfo.InvariantCulture);
-      }      
+      }
       var itemCount = _enc.DecodeInt();
       for (var i = 0; i < itemCount; i++) {
         var date = _enc.DecodeString();
@@ -1767,7 +1775,7 @@ namespace Daemaged.IBNet.Client
                 Tag = _enc.DecodeString(),
                 Value = _enc.DecodeString(),
               });
-          }        
+          }
       }
       OnBondContractDetails(reqId, contract);
     }
@@ -1781,7 +1789,6 @@ namespace Daemaged.IBNet.Client
 
     private void ProcessScannerData()
     {
-      
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
       var numberOfElements = _enc.DecodeInt();
@@ -1833,10 +1840,10 @@ namespace Daemaged.IBNet.Client
       var vega = Double.MaxValue;
       var theta = Double.MaxValue;
       var undPrice = Double.MaxValue;
-      if (version >= 6 || tickType == IBTickType.ModelOption) { 
+      if (version >= 6 || tickType == IBTickType.ModelOption) {
         // introduced in version == 5
         optPrice = _enc.DecodeDouble();
-        if (optPrice < 0) { 
+        if (optPrice < 0) {
           // -1 is the "not yet computed" indicator
           optPrice = Double.MaxValue;
         }
@@ -1938,7 +1945,7 @@ namespace Daemaged.IBNet.Client
         else
 #endif
         OnContractDetailsEnd(reqId);
-          
+
 #if NET_4_5
       } catch (Exception e) {
         if (completion != null)
@@ -1952,7 +1959,6 @@ namespace Daemaged.IBNet.Client
     {
       var version = _enc.DecodeInt();
       OnOpenOrderEnd();
-
     }
 
     private void ProcessAccountDownloadEnd()
@@ -1967,7 +1973,6 @@ namespace Daemaged.IBNet.Client
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
       OnExecutionDataEnd(reqId);
-
     }
 
     private void ProcessDeltaNeutralValidation()
@@ -2006,7 +2011,6 @@ namespace Daemaged.IBNet.Client
         YieldRedemptionDate = _enc.DecodeInt()
       };
       OnCommissionReport(commissionReport);
-
     }
 
     private void ProcessMarketDataType()
@@ -2016,7 +2020,6 @@ namespace Daemaged.IBNet.Client
       var marketDataType = _enc.DecodeInt();
 
       OnMarketDataType(reqId, marketDataType);
-
     }
 
     private void ProcessMessages()
@@ -2032,7 +2035,7 @@ namespace Daemaged.IBNet.Client
 #if NET_4_5
         foreach (var f in _asyncCalls.Values)
           f.TrySetException(new TWSDisconnectedException());
-#endif        
+#endif
       }
       finally {
         Disconnect();
@@ -2076,7 +2079,7 @@ namespace Daemaged.IBNet.Client
         case ClientMessage.RealTimeBars:           ProcessRealTimeBars();           break;
         case ClientMessage.FundamentalData:        ProcessFundamentalData();        break;
         case ClientMessage.ContractDataEnd:        ProcessContractDataEnd();        break;
-        case ClientMessage.OpenOrderEnd:           ProcessOpenOrderEnd();           break;        
+        case ClientMessage.OpenOrderEnd:           ProcessOpenOrderEnd();           break;
         case ClientMessage.AccountDownloadEnd:     ProcessAccountDownloadEnd();     break;
         case ClientMessage.ExecutionDataEnd:       ProcessExecutionDataEnd();       break;
         case ClientMessage.DeltaNuetralValidation: ProcessDeltaNeutralValidation(); break;
@@ -2090,7 +2093,8 @@ namespace Daemaged.IBNet.Client
       // All is well
       return true;
     }
-    #endregion
+
+    #endregion Raw Server Mesage Processing
 
     #region Request Methods
 
@@ -2103,7 +2107,7 @@ namespace Daemaged.IBNet.Client
     /// <exception cref="Daemaged.IBNet.Client.NotConnectedException"></exception>
     public virtual int PlaceOrder(IBContract contract, IBOrder order)
     {
-      lock (this) {
+      lock (_tcpClient) {
         if (!IsConnected)
           throw new NotConnectedException();
 
@@ -2112,7 +2116,7 @@ namespace Daemaged.IBNet.Client
         var orderId = NextValidId;
 
         var reqVersion = ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_NOT_HELD ? 27 : 39;
-        
+
         try {
           _enc.Encode(ServerMessage.PlaceOrder);
           _enc.Encode(reqVersion);
@@ -2148,12 +2152,11 @@ namespace Daemaged.IBNet.Client
           else
             _enc.EncodeMax(order.LimitPrice);
 
-
           if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_TRAILING_PERCENT)
             _enc.Encode(order.AuxPrice == Double.MaxValue ? 0 : order.AuxPrice);
           else
             _enc.EncodeMax(order.AuxPrice);
-          
+
           _enc.Encode(order.Tif);
           _enc.Encode(order.OcaGroup);
           _enc.Encode(order.Account);
@@ -2200,12 +2203,12 @@ namespace Daemaged.IBNet.Client
               _enc.Encode(0);
             else {
               _enc.Encode(order.OrderComboLegs.Count);
-              foreach (var l in order.OrderComboLegs) 
+              foreach (var l in order.OrderComboLegs)
                 _enc.EncodeMax(l.Price);
             }
           }
 
-          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SMART_COMBO_ROUTING_PARAMS && contract.SecurityType == IBSecurityType.Bag) {            
+          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SMART_COMBO_ROUTING_PARAMS && contract.SecurityType == IBSecurityType.Bag) {
             if (order.SmartComboRoutingParams == null || order.SmartComboRoutingParams.Count == 0)
               _enc.Encode(0);
             else {
@@ -2213,7 +2216,7 @@ namespace Daemaged.IBNet.Client
               foreach (var tv in order.SmartComboRoutingParams) {
                 _enc.Encode(tv.Tag);
                 _enc.Encode(tv.Value);
-              }              
+              }
             }
           }
 
@@ -2242,7 +2245,7 @@ namespace Daemaged.IBNet.Client
           if (ServerInfo.Version >= 19) {
             _enc.Encode(order.OcaType);
             if (ServerInfo.Version < 38)
-              _enc.Encode(false); // Deprecated order.m_rthOnly            
+              _enc.Encode(false); // Deprecated order.m_rthOnly
 
             _enc.Encode(order.Rule80A);
             _enc.Encode(order.SettlingFirm);
@@ -2290,8 +2293,6 @@ namespace Daemaged.IBNet.Client
                   _enc.Encode(order.DeltaNeutralShortSaleSlot);
                   _enc.Encode(order.DeltaNeutralDesignatedLocation);
                 }
-
-
               }
               _enc.Encode(order.ContinuousUpdate);
               if (ServerInfo.Version == 26) {
@@ -2311,11 +2312,11 @@ namespace Daemaged.IBNet.Client
           if (ServerInfo.Version >= 30) { // TRAIL_STOP_LIMIT stop price
               _enc.EncodeMax( order.TrailStopPrice);
           }
-          
+
           if( ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_TRAILING_PERCENT){
               _enc.EncodeMax( order.TrailingPercent);
           }
-          
+
           if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS) {
         	  if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS2) {
         	   _enc.EncodeMax(order.ScaleInitLevelSize);
@@ -2324,7 +2325,6 @@ namespace Daemaged.IBNet.Client
         	  else {
         	   _enc.Encode("");
         	   _enc.EncodeMax(order.ScaleInitLevelSize);
-        	   
         	  }
         	  _enc.EncodeMax(order.ScalePriceIncrement);
           }
@@ -2349,12 +2349,12 @@ namespace Daemaged.IBNet.Client
           if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_OPT_OUT_SMART_ROUTING) {
               _enc.Encode(order.OptOutSmartRouting);
           }
-          
+
           if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_PTA_ORDERS) {
         	  _enc.Encode(order.ClearingAccount);
         	  _enc.Encode(order.ClearingIntent);
           }
-          
+
           if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_NOT_HELD)
         	  _enc.Encode(order.NotHeld);
 
@@ -2370,14 +2370,14 @@ namespace Daemaged.IBNet.Client
         	   _enc.Encode(false);
         	  }
           }
-          
+
           if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_ALGO_ORDERS) {
         	  _enc.Encode( order.AlgoStrategy ?? String.Empty);
         	  if (!String.IsNullOrEmpty(order.AlgoStrategy)) {
         	   if (order.AlgoParams == null || order.AlgoParams.Count == 0)
                _enc.Encode(0);
              else {
-        	     _enc.Encode(order.AlgoParams.Count);        	     
+        	     _enc.Encode(order.AlgoParams.Count);
         		   foreach (var tv in order.AlgoParams) {
                  _enc.Encode(tv.Tag);
         			   _enc.Encode(tv.Value);
@@ -2399,7 +2399,7 @@ namespace Daemaged.IBNet.Client
           OrderId = orderId,
           Order = order,
           Contract = contract,
-        });        
+        });
         return orderId;
       }
     }
@@ -2432,7 +2432,6 @@ namespace Daemaged.IBNet.Client
       if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_ALGO_ORDERS)
         if (!string.IsNullOrEmpty(order.AlgoStrategy))
           throw new TWSOutdatedException();
-
 
       if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_NOT_HELD)
         if (order.NotHeld)
@@ -2493,67 +2492,69 @@ namespace Daemaged.IBNet.Client
       if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_TRAILING_PERCENT)
         if (order.TrailingPercent != Double.MaxValue)
           throw new TWSOutdatedException();
-
-
     }
 
-    public virtual void ExerciseOptions(int reqId, IBContract contract,
-                                        int exerciseAction, int exerciseQuantity,
-                                        string account, int overrideOrder)
+    public virtual void ExerciseOptions(int reqId,
+      IBContract contract,
+      int exerciseAction,
+      int exerciseQuantity,
+      string account,
+      int overrideOrder)
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      const int reqVersion = 1;
+        const int reqVersion = 1;
 
-      try {
-        if (ServerInfo.Version < 21) {
-          OnError(TWSErrors.UPDATE_TWS);
-          return;
+        try {
+          if (ServerInfo.Version < 21) {
+            OnError(TWSErrors.UPDATE_TWS);
+            return;
+          }
+
+          _enc.Encode(ServerMessage.ExerciseOptions);
+          _enc.Encode(reqVersion);
+          _enc.Encode(reqId);
+          _enc.Encode(contract.Symbol);
+          _enc.Encode(contract.SecurityType);
+          _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
+          _enc.Encode(contract.Strike);
+          _enc.Encode(contract.Right);
+          _enc.Encode(contract.Multiplier);
+          _enc.Encode(contract.Exchange);
+          _enc.Encode(contract.Currency);
+          _enc.Encode(contract.LocalSymbol);
+          _enc.Encode(exerciseAction);
+          _enc.Encode(exerciseQuantity);
+          _enc.Encode(account);
+          _enc.Encode(overrideOrder);
+        } catch (Exception) {
+          Disconnect();
+          throw;
         }
-
-        _enc.Encode(ServerMessage.ExerciseOptions);
-        _enc.Encode(reqVersion);
-        _enc.Encode(reqId);
-        _enc.Encode(contract.Symbol);
-        _enc.Encode(contract.SecurityType);
-        _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
-        _enc.Encode(contract.Strike);
-        _enc.Encode(contract.Right);
-        _enc.Encode(contract.Multiplier);
-        _enc.Encode(contract.Exchange);
-        _enc.Encode(contract.Currency);
-        _enc.Encode(contract.LocalSymbol);
-        _enc.Encode(exerciseAction);
-        _enc.Encode(exerciseQuantity);
-        _enc.Encode(account);
-        _enc.Encode(overrideOrder);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
       }
     }
-
 
     public virtual void RequestServerLogLevelChange(int logLevel)
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      const int reqVersion = 1;
+        const int reqVersion = 1;
 
-      // send the set server logging level message
-      try {
-        _enc.Encode(ServerMessage.SetServerLogLevel);
-        _enc.Encode(reqVersion);
-        _enc.Encode(logLevel);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
+        // send the set server logging level message
+        try {
+          _enc.Encode(ServerMessage.SetServerLogLevel);
+          _enc.Encode(reqVersion);
+          _enc.Encode(logLevel);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
@@ -2561,7 +2562,7 @@ namespace Daemaged.IBNet.Client
                                              string durationStr, int barSizeSetting,
                                              string whatToShow, int useRTH, int formatDate)
     {
-      lock (this) {
+      lock (_tcpClient) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -2620,14 +2621,15 @@ namespace Daemaged.IBNet.Client
         return requestId;
       }
     }
+
 #if NET_4_5
+
     public async Task<int> RequestMarketDataAsync(IBContract contract, IList<IBGenericTickType> tickList = null, bool snapshot = false)
     {
       var completion = new ProgressiveTaskCompletionSource<object>();
       var id = NextValidId;
       _asyncCalls.Add(id, completion);
       RequestMarketData(contract, tickList, snapshot, id);
-      
 
       int timeout = 1000;
       if (await Task.WhenAny(completion.Task, Task.Delay(timeout)) == completion.Task) {
@@ -2641,11 +2643,12 @@ namespace Daemaged.IBNet.Client
       _asyncCalls.Remove(id);
       return id;
     }
+
 #endif
 
     public virtual int RequestMarketData(IBContract contract, IList<IBGenericTickType> genericTickList = null, bool snapshot = false, int reqId = 0)
     {
-      lock (this) {
+      lock (_tcpClient) {
         if (!IsConnected)
           throw new NotConnectedException();
 
@@ -2663,14 +2666,14 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 9;
         if (reqId == 0)
           reqId = NextValidId;
-        
+
         try {
           _enc.Encode(ServerMessage.RequestMarketData);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
           if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_REQ_MKT_DATA_CONID)
             _enc.Encode(contract.ContractId);
-          
+
           _enc.Encode(contract.Symbol);
           _enc.Encode(contract.SecurityType);
           _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
@@ -2733,13 +2736,13 @@ namespace Daemaged.IBNet.Client
         catch (Exception e) {
           Disconnect();
           throw;
-        }        
+        }
       }
     }
 
-    public  void RequestManagedAccounts() 
+    public  void RequestManagedAccounts()
     {
-      lock (this) {
+      lock (_tcpClient) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -2760,383 +2763,393 @@ namespace Daemaged.IBNet.Client
 
     public void RequestFA(int faDataType)
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      // This feature is only available for versions of TWS >= 13
-      if (ServerInfo.Version < 13)
-        throw new TWSOutdatedException();
-      
-      const int reqVersion = 1;
+        // This feature is only available for versions of TWS >= 13
+        if (ServerInfo.Version < 13)
+          throw new TWSOutdatedException();
 
-      try {
-        _enc.Encode(ServerMessage.RequestFA);
-        _enc.Encode(reqVersion);
-        _enc.Encode(faDataType);
-      }
-      catch (Exception) {        
-        Disconnect();
-        throw;
+        const int reqVersion = 1;
+
+        try {
+          _enc.Encode(ServerMessage.RequestFA);
+          _enc.Encode(reqVersion);
+          _enc.Encode(faDataType);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
     public void ReplaceFA(int faDataType, String xml)
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      // This feature is only available for versions of TWS >= 13
-      if (ServerInfo.Version < 13)
-        throw new TWSOutdatedException();
+        // This feature is only available for versions of TWS >= 13
+        if (ServerInfo.Version < 13)
+          throw new TWSOutdatedException();
 
-      const int reqVersion = 1;
+        const int reqVersion = 1;
 
-      try {
-        _enc.Encode(ServerMessage.ReplaceFA);
-        _enc.Encode(reqVersion);
-        _enc.Encode(faDataType);
-        _enc.Encode(xml);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
+        try {
+          _enc.Encode(ServerMessage.ReplaceFA);
+          _enc.Encode(reqVersion);
+          _enc.Encode(faDataType);
+          _enc.Encode(xml);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
     public void RequestScannerParameters()
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
-      if (ServerInfo.Version < 24)
-        throw new TWSOutdatedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
+        if (ServerInfo.Version < 24)
+          throw new TWSOutdatedException();
 
-      const int reqVersion = 1;
+        const int reqVersion = 1;
 
-      try {
-        _enc.Encode(ServerMessage.RequestScannerParameters);
-        _enc.Encode(reqVersion);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
+        try {
+          _enc.Encode(ServerMessage.RequestScannerParameters);
+          _enc.Encode(reqVersion);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
     public void RequestScannerSubscription(int tickerId, ScannerSubscription subscription)
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
-      if (ServerInfo.Version < 24)
-        throw new TWSOutdatedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
+        if (ServerInfo.Version < 24)
+          throw new TWSOutdatedException();
 
-      const int VERSION = 3;
+        const int VERSION = 3;
 
-      try {
-        _enc.Encode(ServerMessage.RequestScannerSubscription);
-        _enc.Encode(VERSION);
-        _enc.Encode(tickerId);
-        _enc.EncodeMax(subscription.NumberOfRows);
-        _enc.Encode(subscription.Instrument);
-        _enc.Encode(subscription.LocationCode);
-        _enc.Encode(subscription.ScanCode);
-        _enc.EncodeMax(subscription.AbovePrice);
-        _enc.EncodeMax(subscription.BelowPrice);
-        _enc.EncodeMax(subscription.AboveVolume);
-        _enc.EncodeMax(subscription.MarketCapAbove);
-        _enc.EncodeMax(subscription.MarketCapBelow);
-        _enc.Encode(subscription.MoodyRatingAbove);
-        _enc.Encode(subscription.MoodyRatingBelow);
-        _enc.Encode(subscription.SPRatingAbove);
-        _enc.Encode(subscription.SPRatingBelow);
-        _enc.Encode(subscription.MaturityDateAbove);
-        _enc.Encode(subscription.MaturityDateBelow);
-        _enc.EncodeMax(subscription.CouponRateAbove);
-        _enc.EncodeMax(subscription.CouponRateBelow);
-        _enc.Encode(subscription.ExcludeConvertible);
-        if (ServerInfo.Version >= 25) {
-          _enc.Encode(subscription.AverageOptionVolumeAbove);
-          _enc.Encode(subscription.ScannerSettingPairs);
-        }
-        if (ServerInfo.Version >= 27)
-          _enc.Encode(subscription.StockTypeFilter);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
-      }
-    }
-
-
-    public void RequestMarketDataType(int marketDataType)
-    {
-      if (!IsConnected)
-        throw new NotConnectedException();
-
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_MARKET_DATA_TYPE)
-        throw new TWSOutdatedException();
-
-
-      const int reqVersion = 1;
-
-      // send the reqMarketDataType message
-      try {
-        _enc.Encode(ServerMessage.RequestMarketDataType);
-        _enc.Encode(reqVersion);
-        _enc.Encode(marketDataType);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
-      }
-    }
-
-    void RequestFundamentalData(int reqId, IBContract contract, String reportType) 
-    {
-      if (!IsConnected)
-        throw new NotConnectedException();
-        
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_FUNDAMENTAL_DATA)
-       throw new TWSOutdatedException();
-        
-      const int VERSION = 1;
-
-      try {
-        // send req fund data msg
-        _enc.Encode(ServerMessage.RequestFundamentalData);
-        _enc.Encode(VERSION);
-        _enc.Encode(reqId);
-
-        // send contract fields
-        _enc.Encode(contract.Symbol);
-        _enc.Encode(contract.SecurityType);
-        _enc.Encode(contract.Exchange);
-        _enc.Encode(contract.PrimaryExchange);
-        _enc.Encode(contract.Currency);
-        _enc.Encode(contract.LocalSymbol);
-        
-        _enc.Encode(reportType);
-        }
-        catch( Exception) {
+        try {
+          _enc.Encode(ServerMessage.RequestScannerSubscription);
+          _enc.Encode(VERSION);
+          _enc.Encode(tickerId);
+          _enc.EncodeMax(subscription.NumberOfRows);
+          _enc.Encode(subscription.Instrument);
+          _enc.Encode(subscription.LocationCode);
+          _enc.Encode(subscription.ScanCode);
+          _enc.EncodeMax(subscription.AbovePrice);
+          _enc.EncodeMax(subscription.BelowPrice);
+          _enc.EncodeMax(subscription.AboveVolume);
+          _enc.EncodeMax(subscription.MarketCapAbove);
+          _enc.EncodeMax(subscription.MarketCapBelow);
+          _enc.Encode(subscription.MoodyRatingAbove);
+          _enc.Encode(subscription.MoodyRatingBelow);
+          _enc.Encode(subscription.SPRatingAbove);
+          _enc.Encode(subscription.SPRatingBelow);
+          _enc.Encode(subscription.MaturityDateAbove);
+          _enc.Encode(subscription.MaturityDateBelow);
+          _enc.EncodeMax(subscription.CouponRateAbove);
+          _enc.EncodeMax(subscription.CouponRateBelow);
+          _enc.Encode(subscription.ExcludeConvertible);
+          if (ServerInfo.Version >= 25) {
+            _enc.Encode(subscription.AverageOptionVolumeAbove);
+            _enc.Encode(subscription.ScannerSettingPairs);
+          }
+          if (ServerInfo.Version >= 27)
+            _enc.Encode(subscription.StockTypeFilter);
+        } catch (Exception) {
           Disconnect();
           throw;
         }
-    }
-    
-    public void CancelFundamentalData(int reqId) 
-    {
-      if (!IsConnected)
-        throw new NotConnectedException();
-      
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_FUNDAMENTAL_DATA)
-      	throw new TWSOutdatedException();
-        
-      const int reqVersion = 1;
-
-      try {
-        // send req mkt data msg
-        _enc.Encode(ServerMessage.CancelFundamentalData);
-        _enc.Encode(reqVersion);
-        _enc.Encode(reqId);
       }
-      catch( Exception) {
-        Disconnect();
-        throw;
+    }
+
+    public void RequestMarketDataType(int marketDataType)
+    {
+      lock (_tcpClient) {
+        if (!IsConnected)
+          throw new NotConnectedException();
+
+        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_MARKET_DATA_TYPE)
+          throw new TWSOutdatedException();
+
+        const int reqVersion = 1;
+
+        // send the reqMarketDataType message
+        try {
+          _enc.Encode(ServerMessage.RequestMarketDataType);
+          _enc.Encode(reqVersion);
+          _enc.Encode(marketDataType);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
+      }
+    }
+
+    public void RequestFundamentalData(int reqId, IBContract contract, String reportType)
+    {
+      lock (_tcpClient) {
+        if (!IsConnected)
+          throw new NotConnectedException();
+
+        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_FUNDAMENTAL_DATA)
+          throw new TWSOutdatedException();
+
+        const int VERSION = 1;
+
+        try {
+          // send req fund data msg
+          _enc.Encode(ServerMessage.RequestFundamentalData);
+          _enc.Encode(VERSION);
+          _enc.Encode(reqId);
+
+          // send contract fields
+          _enc.Encode(contract.Symbol);
+          _enc.Encode(contract.SecurityType);
+          _enc.Encode(contract.Exchange);
+          _enc.Encode(contract.PrimaryExchange);
+          _enc.Encode(contract.Currency);
+          _enc.Encode(contract.LocalSymbol);
+
+          _enc.Encode(reportType);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
+      }
+    }
+
+    public void CancelFundamentalData(int reqId)
+    {
+      lock (_tcpClient) {
+        if (!IsConnected)
+          throw new NotConnectedException();
+
+        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_FUNDAMENTAL_DATA)
+          throw new TWSOutdatedException();
+
+        const int reqVersion = 1;
+
+        try {
+          // send req mkt data msg
+          _enc.Encode(ServerMessage.CancelFundamentalData);
+          _enc.Encode(reqVersion);
+          _enc.Encode(reqId);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
     public void CalculateImpliedVolatility(int reqId, IBContract contract, double optionPrice, double underPrice)
     {
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_CALC_IMPLIED_VOLAT)
-        throw new TWSOutdatedException();
+        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_CALC_IMPLIED_VOLAT)
+          throw new TWSOutdatedException();
 
-      const int reqVersion = 1;
+        const int reqVersion = 1;
 
-      try {
-        // send calculate implied volatility msg
-        _enc.Encode(ServerMessage.RequestCalcImpliedVolatility);
-        _enc.Encode(reqVersion);
-        _enc.Encode(reqId);
+        try {
+          // send calculate implied volatility msg
+          _enc.Encode(ServerMessage.RequestCalcImpliedVolatility);
+          _enc.Encode(reqVersion);
+          _enc.Encode(reqId);
 
-        // send contract fields
-        _enc.Encode(contract.ContractId);
-        _enc.Encode(contract.Symbol);
-        _enc.Encode(contract.SecurityType);
-        _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
-        _enc.Encode(contract.Strike);
-        _enc.Encode(contract.Right);
-        _enc.Encode(contract.Multiplier);
-        _enc.Encode(contract.Exchange);
-        _enc.Encode(contract.PrimaryExchange);
-        _enc.Encode(contract.Currency);
-        _enc.Encode(contract.LocalSymbol);
+          // send contract fields
+          _enc.Encode(contract.ContractId);
+          _enc.Encode(contract.Symbol);
+          _enc.Encode(contract.SecurityType);
+          _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
+          _enc.Encode(contract.Strike);
+          _enc.Encode(contract.Right);
+          _enc.Encode(contract.Multiplier);
+          _enc.Encode(contract.Exchange);
+          _enc.Encode(contract.PrimaryExchange);
+          _enc.Encode(contract.Currency);
+          _enc.Encode(contract.LocalSymbol);
 
-        _enc.Encode(optionPrice);
-        _enc.Encode(underPrice);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
+          _enc.Encode(optionPrice);
+          _enc.Encode(underPrice);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
     public void CancelCalculateImpliedVolatility(int reqId)
     {
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_CANCEL_CALC_IMPLIED_VOLAT)
-        throw new TWSOutdatedException();
-              
-      const int reqVersion = 1;
+        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_CANCEL_CALC_IMPLIED_VOLAT)
+          throw new TWSOutdatedException();
 
-      try {
-        // send cancel calculate implied volatility msg
-        _enc.Encode(ServerMessage.CancelCalcImpliedVolatility);
-        _enc.Encode(reqVersion);
-        _enc.Encode(reqId);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
+        const int reqVersion = 1;
+
+        try {
+          // send cancel calculate implied volatility msg
+          _enc.Encode(ServerMessage.CancelCalcImpliedVolatility);
+          _enc.Encode(reqVersion);
+          _enc.Encode(reqId);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
     public void CalculateOptionPrice(int reqId, IBContract contract, double volatility, double underPrice)
     {
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_CALC_OPTION_PRICE)
-        throw new TWSOutdatedException();
-      
-      const int reqVersion = 1;
+        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_CALC_OPTION_PRICE)
+          throw new TWSOutdatedException();
 
-      try
-      {
-        // send calculate option price msg
-        _enc.Encode(ServerMessage.RequestCalcOptionPrice);
-        _enc.Encode(reqVersion);
-        _enc.Encode(reqId);
+        const int reqVersion = 1;
 
-        // send contract fields
-        _enc.Encode(contract.ContractId);
-        _enc.Encode(contract.Symbol);
-        _enc.Encode(contract.SecurityType);
-        _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
-        _enc.Encode(contract.Strike);
-        _enc.Encode(contract.Right);
-        _enc.Encode(contract.Multiplier);
-        _enc.Encode(contract.Exchange);
-        _enc.Encode(contract.PrimaryExchange);
-        _enc.Encode(contract.Currency);
-        _enc.Encode(contract.LocalSymbol);
+        try {
+          // send calculate option price msg
+          _enc.Encode(ServerMessage.RequestCalcOptionPrice);
+          _enc.Encode(reqVersion);
+          _enc.Encode(reqId);
 
-        _enc.Encode(volatility);
-        _enc.Encode(underPrice);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
+          // send contract fields
+          _enc.Encode(contract.ContractId);
+          _enc.Encode(contract.Symbol);
+          _enc.Encode(contract.SecurityType);
+          _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
+          _enc.Encode(contract.Strike);
+          _enc.Encode(contract.Right);
+          _enc.Encode(contract.Multiplier);
+          _enc.Encode(contract.Exchange);
+          _enc.Encode(contract.PrimaryExchange);
+          _enc.Encode(contract.Currency);
+          _enc.Encode(contract.LocalSymbol);
+
+          _enc.Encode(volatility);
+          _enc.Encode(underPrice);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
     public void CancelCalculateOptionPrice(int reqId)
     {
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_CANCEL_CALC_OPTION_PRICE)
-        throw new TWSOutdatedException();
-        
-      const int reqVersion = 1;
+        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_CANCEL_CALC_OPTION_PRICE)
+          throw new TWSOutdatedException();
 
-      try {
-        // send cancel calculate option price msg
-        _enc.Encode(ServerMessage.CancelCalcOptionPrice);
-        _enc.Encode(reqVersion);
-        _enc.Encode(reqId);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
+        const int reqVersion = 1;
+
+        try {
+          // send cancel calculate option price msg
+          _enc.Encode(ServerMessage.CancelCalcOptionPrice);
+          _enc.Encode(reqVersion);
+          _enc.Encode(reqId);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
     public void RequestGlobalCancel()
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_GLOBAL_CANCEL)
-        throw new TWSOutdatedException();
+        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_REQ_GLOBAL_CANCEL)
+          throw new TWSOutdatedException();
 
-      const int VERSION = 1;
+        const int VERSION = 1;
 
-      // send request global cancel msg
-      try {
-        _enc.Encode(ServerMessage.RequestGlobalCancel);
-        _enc.Encode(VERSION);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
+        // send request global cancel msg
+        try {
+          _enc.Encode(ServerMessage.RequestGlobalCancel);
+          _enc.Encode(VERSION);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
     public virtual void RequestRealTimeBars(int reqId, IBContract contract,
                                             int barSize, string whatToShow, bool useRTH)
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
-      if (ServerInfo.Version < 34)
-        throw new TWSOutdatedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
+        if (ServerInfo.Version < 34)
+          throw new TWSOutdatedException();
 
-      const int reqVersion = 1;
+        const int reqVersion = 1;
 
-      try {
-        // send req mkt data msg
-        _enc.Encode(ServerMessage.RequestRealTimeBars);
-        _enc.Encode(reqVersion);
-        _enc.Encode(reqId);
+        try {
+          // send req mkt data msg
+          _enc.Encode(ServerMessage.RequestRealTimeBars);
+          _enc.Encode(reqVersion);
+          _enc.Encode(reqId);
 
-        _enc.Encode(contract.Symbol);
-        _enc.Encode(contract.SecurityType);
-        _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
-        _enc.Encode(contract.Strike);
-        _enc.Encode(contract.Right);
-        _enc.Encode(contract.Multiplier);
-        _enc.Encode(contract.Exchange);
-        _enc.Encode(contract.PrimaryExchange);
-        _enc.Encode(contract.Currency);
-        _enc.Encode(contract.LocalSymbol);
-        _enc.Encode(barSize);
-        _enc.Encode(whatToShow);
-        _enc.Encode(useRTH);
-      }
-      catch (Exception e) {
-        Disconnect();
-        throw;
+          _enc.Encode(contract.Symbol);
+          _enc.Encode(contract.SecurityType);
+          _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
+          _enc.Encode(contract.Strike);
+          _enc.Encode(contract.Right);
+          _enc.Encode(contract.Multiplier);
+          _enc.Encode(contract.Exchange);
+          _enc.Encode(contract.PrimaryExchange);
+          _enc.Encode(contract.Currency);
+          _enc.Encode(contract.LocalSymbol);
+          _enc.Encode(barSize);
+          _enc.Encode(whatToShow);
+          _enc.Encode(useRTH);
+        } catch (Exception e) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
     public virtual int RequestMarketDepth(IBContract contract, int numRows)
     {
-      lock (this) {
-        if (!IsConnected)          
+      lock (_tcpClient) {
+        if (!IsConnected)
           throw new NotConnectedException();
 
         if (ServerInfo.Version < 6)
           throw new TWSOutdatedException();
-        
+
         const int reqVersion = 3;
         var reqId = NextValidId;
         try {
@@ -3166,106 +3179,111 @@ namespace Daemaged.IBNet.Client
 
     public virtual void RequestAutoOpenOrders(bool autoBind)
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();      
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      const int reqVersion = 1;
+        const int reqVersion = 1;
 
-      // send req open orders msg
-      try {
-        _enc.Encode(ServerMessage.RequestAutoOpenOrders);
-        _enc.Encode(reqVersion);
-        _enc.Encode(autoBind);
+        // send req open orders msg
+        try {
+          _enc.Encode(ServerMessage.RequestAutoOpenOrders);
+          _enc.Encode(reqVersion);
+          _enc.Encode(autoBind);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
-      catch (Exception) {
-        Disconnect();
-        throw;
-      }
-    }    
+    }
+
     public virtual void RequestIds(int numIds)
     {
-      // not connected?
-      if (!IsConnected) 
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      const int reqVersion = 1;
+        const int reqVersion = 1;
 
-      try {
-        _enc.Encode(ServerMessage.RequestIds);
-        _enc.Encode(reqVersion);
-        _enc.Encode(numIds);
-      }
-      catch (Exception e) {
-        Disconnect();
-        throw;
+        try {
+          _enc.Encode(ServerMessage.RequestIds);
+          _enc.Encode(reqVersion);
+          _enc.Encode(numIds);
+        } catch (Exception e) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
     public virtual void RequestOpenOrders()
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();        
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      const int reqVersion = 1;
+        const int reqVersion = 1;
 
-      // send cancel order msg
-      try {
-        _enc.Encode(ServerMessage.RequestOpenOrders);
-        _enc.Encode(reqVersion);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
+        // send cancel order msg
+        try {
+          _enc.Encode(ServerMessage.RequestOpenOrders);
+          _enc.Encode(reqVersion);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
     public virtual void RequestAccountUpdates(bool subscribe, string acctCode)
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      const int reqVersion = 2;
+        const int reqVersion = 2;
 
-      // send cancel order msg
-      try {
-        _enc.Encode(ServerMessage.RequestAccountData);
-        _enc.Encode(reqVersion);
-        _enc.Encode(subscribe);
+        // send cancel order msg
+        try {
+          _enc.Encode(ServerMessage.RequestAccountData);
+          _enc.Encode(reqVersion);
+          _enc.Encode(subscribe);
 
-        // Send the account code. This will only be used for FA clients
-        if (ServerInfo.Version >= 9) {
-          _enc.Encode(acctCode);
+          // Send the account code. This will only be used for FA clients
+          if (ServerInfo.Version >= 9) {
+            _enc.Encode(acctCode);
+          }
+        } catch (Exception) {
+          Disconnect();
+          throw;
         }
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
       }
     }
 
     public virtual void RequestAllOpenOrders()
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      const int reqVersion = 1;
+        const int reqVersion = 1;
 
-      // send req all open orders msg
-      try {
-        _enc.Encode(ServerMessage.RequestAllOpenOrders);
-        _enc.Encode(reqVersion);
-      }
-      catch (Exception e) {
-        OnError(TWSErrors.FAIL_SEND_OORDER);
-        OnError(e.Message);
-        Disconnect();
+        // send req all open orders msg
+        try {
+          _enc.Encode(ServerMessage.RequestAllOpenOrders);
+          _enc.Encode(reqVersion);
+        } catch (Exception e) {
+          OnError(TWSErrors.FAIL_SEND_OORDER);
+          OnError(e.Message);
+          Disconnect();
+        }
       }
     }
-
 
     /// <summary>
     /// Requests the executions.
@@ -3275,142 +3293,151 @@ namespace Daemaged.IBNet.Client
     /// <exception cref="Daemaged.IBNet.Client.NotConnectedException"></exception>
     public virtual int RequestExecutions(IBExecutionFilter filter)
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();        
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      const int reqVersion = 3;
+        const int reqVersion = 3;
 
-      // send cancel order msg
-      try {
-        _enc.Encode(ServerMessage.RequestExecutions);
-        _enc.Encode(reqVersion);
+        // send cancel order msg
+        try {
+          _enc.Encode(ServerMessage.RequestExecutions);
+          _enc.Encode(reqVersion);
 
-        var requestId = NextValidId;
+          var requestId = NextValidId;
 
-        if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_EXECUTION_DATA_CHAIN)
-          _enc.Encode(requestId);
+          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_EXECUTION_DATA_CHAIN)
+            _enc.Encode(requestId);
 
-        // Send the execution rpt filter data
-        if (ServerInfo.Version >= 9) {
-          _enc.Encode(filter.ClientId);
-          _enc.Encode(filter.AcctCode);
+          // Send the execution rpt filter data
+          if (ServerInfo.Version >= 9) {
+            _enc.Encode(filter.ClientId);
+            _enc.Encode(filter.AcctCode);
 
-          // Note that the valid format for m_time is "yyyymmdd-hh:mm:ss"
-          _enc.Encode(filter.DateTime.ToString(IB_DATE_FORMAT));
-          _enc.Encode(filter.Symbol);
-          _enc.Encode(filter.SecurityType);
-          _enc.Encode(filter.Exchange);
-          _enc.Encode(filter.Side);          
+            // Note that the valid format for m_time is "yyyymmdd-hh:mm:ss"
+            _enc.Encode(filter.DateTime.ToString(IB_DATE_FORMAT));
+            _enc.Encode(filter.Symbol);
+            _enc.Encode(filter.SecurityType);
+            _enc.Encode(filter.Exchange);
+            _enc.Encode(filter.Side);
+          }
+          return requestId;
+        } catch (Exception) {
+          Disconnect();
+          throw;
         }
-        return requestId;
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
       }
     }
 
     public virtual void RequestNewsBulletins(bool allMsgs)
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      const int reqVersion = 1;
+        const int reqVersion = 1;
 
-      try {
-        _enc.Encode(ServerMessage.RequestNewsBulletins);
-        _enc.Encode(reqVersion);
-        _enc.Encode(allMsgs);
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
+        try {
+          _enc.Encode(ServerMessage.RequestNewsBulletins);
+          _enc.Encode(reqVersion);
+          _enc.Encode(allMsgs);
+        } catch (Exception) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
+    /// <summary>
+    /// Request Full Contract Details for the specified partial contract through the <see cref="ContractDetails"/> event
+    /// </summary>
+    /// <param name="contract">The partial contract details</param>
+    /// <param name="requestId">Optional request id</param>
+    /// <returns>the request id</returns>
+    /// <exception cref="NotConnectedException"></exception>
+    /// <exception cref="TWSOutdatedException"></exception>
     public virtual int RequestContractDetails(IBContract contract, int requestId = 0)
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      // This feature is only available for versions of TWS >=4
-      if (ServerInfo.Version < 4)
-        throw new TWSOutdatedException();
-      if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE)
-        if (contract.SecurityIdType != IBSecurityIdType.None || !String.IsNullOrEmpty(contract.SecurityId))
+        // This feature is only available for versions of TWS >=4
+        if (ServerInfo.Version < 4)
           throw new TWSOutdatedException();
+        if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE)
+          if (contract.SecurityIdType != IBSecurityIdType.None || !String.IsNullOrEmpty(contract.SecurityId))
+            throw new TWSOutdatedException();
 
+        const int reqVersion = 6;
 
-      const int reqVersion = 6;
+        try {
+          // send req mkt data msg
+          _enc.Encode(ServerMessage.RequestContractData);
+          _enc.Encode(reqVersion);
 
-      try {
-        // send req mkt data msg
-        _enc.Encode(ServerMessage.RequestContractData);
-        _enc.Encode(reqVersion);
+          if (requestId == 0)
+            requestId = NextValidId;
 
-        if (requestId == 0)
-          requestId = NextValidId;
-
-        if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_DATA_CHAIN)
-        {
-          _enc.Encode(requestId);
+          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_DATA_CHAIN) {
+            _enc.Encode(requestId);
+          }
+          // send contract fields
+          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_CONID)
+            _enc.Encode(contract.ContractId);
+          _enc.Encode(contract.Symbol);
+          _enc.Encode(contract.SecurityType);
+          _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
+          _enc.Encode(contract.Strike);
+          _enc.Encode(contract.Right);
+          if (ServerInfo.Version >= 15) {
+            _enc.Encode(contract.Multiplier);
+          }
+          _enc.Encode(contract.Exchange);
+          _enc.Encode(contract.Currency);
+          _enc.Encode(contract.LocalSymbol);
+          if (ServerInfo.Version >= 31)
+            _enc.Encode(contract.IncludeExpired);
+          if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE) {
+            _enc.Encode(contract.SecurityIdType);
+            _enc.Encode(contract.SecurityId);
+          }
+          return requestId;
+        } catch (Exception) {
+          Disconnect();
+          throw;
         }
-        // send contract fields
-        if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_CONTRACT_CONID)
-          _enc.Encode(contract.ContractId);
-        _enc.Encode(contract.Symbol);
-        _enc.Encode(contract.SecurityType);
-        _enc.Encode(contract.Expiry.HasValue ? contract.Expiry.Value.ToString(IB_EXPIRY_DATE_FORMAT) : String.Empty);
-        _enc.Encode(contract.Strike);
-        _enc.Encode(contract.Right);
-        if (ServerInfo.Version >= 15) {
-          _enc.Encode(contract.Multiplier);
-        }
-        _enc.Encode(contract.Exchange);
-        _enc.Encode(contract.Currency);
-        _enc.Encode(contract.LocalSymbol);
-        if (ServerInfo.Version >= 31)
-          _enc.Encode(contract.IncludeExpired);
-        if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_SEC_ID_TYPE) {
-          _enc.Encode(contract.SecurityIdType);
-          _enc.Encode(contract.SecurityId);
-        }
-        return requestId;
-      }
-      catch (Exception) {
-        Disconnect();
-        throw;
       }
     }
 
     public virtual void RequestCurrentTime()
     {
-      // not connected?
-      if (!IsConnected)
-        throw new NotConnectedException();
+      lock (_tcpClient) {
+        // not connected?
+        if (!IsConnected)
+          throw new NotConnectedException();
 
-      // This feature is only available for versions of TWS >= 33
-      if (ServerInfo.Version < 33) {
-        throw new TWSOutdatedException();        
-      }
+        // This feature is only available for versions of TWS >= 33
+        if (ServerInfo.Version < 33) {
+          throw new TWSOutdatedException();
+        }
 
-      const int reqVersion = 1;
+        const int reqVersion = 1;
 
-      try {
-        _enc.Encode(ServerMessage.RequestCurrentTime);
-        _enc.Encode(reqVersion);
-      }
-
-      catch (Exception e) {
-        Disconnect();
-        throw;
+        try {
+          _enc.Encode(ServerMessage.RequestCurrentTime);
+          _enc.Encode(reqVersion);
+        } catch (Exception e) {
+          Disconnect();
+          throw;
+        }
       }
     }
 
-    #endregion
+    #endregion Request Methods
 
     #region Utilities
 
@@ -3431,8 +3458,7 @@ namespace Daemaged.IBNet.Client
       return s;
     }
 
-    #endregion
-
+    #endregion Utilities
 
     private int NextValidId
     {
@@ -3499,88 +3525,116 @@ namespace Daemaged.IBNet.Client
     }
 
     public TWSClientInfo ClientInfo { get; private set; }
+
     public TWSServerInfo ServerInfo { get; private set; }
+
     public event EventHandler<TWSClientStatusEventArgs> StatusChanged;
+
     /// <summary>
     /// Occurs when TWS sends a server generated error.
     /// </summary>
     public event EventHandler<TWSClientErrorEventArgs> Error;
+
     /// <summary>
     /// Occurs when an internal exception occurs in the client implementation
     /// </summary>
     public event EventHandler<TWSClientExceptionEventArgs> ExceptionOccured;
+
     /// <summary>
     /// Occurs when TWS sends a price market-data update/event
     /// </summary>
     public event EventHandler<TWSTickPriceEventArgs> TickPrice;
+
     /// <summary>
     /// Occurs when TWS sends a size market-data update/event
     /// </summary>
     public event EventHandler<TWSTickSizeEventArgs> TickSize;
+
     /// <summary>
     /// Occurs when TWS sends a string market-data update/event
     /// </summary>
     public event EventHandler<TWSTickStringEventArgs> TickString;
+
     /// <summary>
     /// Occurs when generic market-data update/event
     /// </summary>
     public event EventHandler<TWSTickGenericEventArgs> TickGeneric;
+
     public event EventHandler<TWSTickOptionComputationEventArgs> TickOptionComputation;
+
     public event EventHandler<TWSTickEFPEventArgs> TickEFP;
+
     public event EventHandler<TWSCurrentTimeEventArgs> CurrentTime;
+
     /// <summary>
-    /// Occurs when an order's status is updated remotely, 
+    /// Occurs when an order's status is updated remotely,
     /// e.g. a fill event, cancellation confirmation etc.
     /// </summary>
     public event EventHandler<TWSOrderStatusEventArgs> OrderStatus;
+
     /// <summary>
     /// Occurs when an order is reported as active/working
     /// This event is sent for new orders place with the <see cref="PlaceOrder"/> method
     /// as well as for all working orders submitted by this <see cref="TWSClientId"/> upon initial connection
     /// </summary>
     public event EventHandler<TWSOpenOrderEventArgs> OpenOrder;
+
     public event EventHandler<TWSContractDetailsEventArgs> BondContractDetails;
+
     /// <summary>
-    /// Occurs when TWS responds with retrieved contract details in response to 
-    /// a <see cref="RequestContractDetails"/> 
+    /// Occurs when TWS responds with retrieved contract details in response to
+    /// a <see cref="RequestContractDetails"/>
 #if NET_4_5
     /// or <see cref="GetContractDetailsAsync"/>
 #endif
     /// call
     /// </summary>
     public event EventHandler<TWSContractDetailsEventArgs> ContractDetails;
+
     public event EventHandler<TWSScannerDataEventArgs> ScannerData;
+
     public event EventHandler<TWSScannerParametersEventArgs> ScannerParameters;
+
     public event EventHandler<TWSUpdatePortfolioEventArgs> UpdatePortfolio;
+
     /// <summary>
     /// Occurs when TWS responds with execution information for executed orders.
     /// This event is called for executed orders retrieved for a corresponding <see cref="RequestExecutions"/> call
     /// or for orders that we executed for this client while it was disconnected upon reconnection
     /// </summary>
     public event EventHandler<TWSExecutionDetailsEventArgs> ExecutionDetails;
+
     public event EventHandler<TWSMarketDepthEventArgs> MarketDepth;
+
     public event EventHandler<TWSMarketDepthEventArgs> MarketDepthL2;
+
     public event EventHandler<TWSHistoricalDataEventArgs> HistoricalData;
+
     public event EventHandler<TWSMarketDataEventArgs> MarketData;
+
     public event EventHandler<TWSRealtimeBarEventArgs> RealtimeBar;
+
     /// <summary>
     /// Occurs when one of the order related events occurs for an order sent through the api
     /// </summary>
     public event EventHandler<TWSOrderChangedEventArgs> OrderChanged;
-
   }
 
-
   public class NotConnectedException : Exception { }
+
   public class TWSOutdatedException : Exception { }
+
   public class TWSDisconnectedException : Exception { }
+
   public class TWSServerException : Exception
   {
     public TWSServerException(TWSError twsError)
     {
       TWSError = twsError;
     }
+
     public TWSError TWSError { get; private set; }
+
     public override string Message { get { return TWSError.Message; } }
   }
 
@@ -3590,5 +3644,4 @@ namespace Daemaged.IBNet.Client
     internal IBContract Contract;
     internal IBOrder Order;
   }
-
 }

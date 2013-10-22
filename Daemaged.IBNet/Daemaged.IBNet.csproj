@@ -123,5 +123,5 @@
     <PostBuildEvent>
     </PostBuildEvent>
   </PropertyGroup>
-  <Import Project="..\packages\GitInfoPlanter.1.5.0\build\GitInfoPlanter.targets" Condition="Exists('..\packages\GitInfoPlanter.1.5.0\build\GitInfoPlanter.targets')" />
+  <Import Project="..\packages\GitInfoPlanter.1.6.2\build\GitInfoPlanter.targets" Condition="Exists('..\packages\GitInfoPlanter.1.6.2\build\GitInfoPlanter.targets')" />
 </Project>

@@ -1,0 +1,5 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="PlantGitInformation" AfterTargets="Build"  >
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\tools\gitinfoplanter.exe&quot; --platform $(TargetFrameworkVersion) --search-path &quot;$(TargetFrameworkDirectory)&quot; --basedate 2000-01-01 --repo &quot;$(ProjectDir)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetPath)&quot;" />
+  </Target>
+</Project>
