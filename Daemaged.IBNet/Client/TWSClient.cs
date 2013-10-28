@@ -87,6 +87,7 @@ namespace Daemaged.IBNet.Client
     private Thread _thread;
     private string _twsTime;
     private string NUMBER_DECIMAL_SEPARATOR;
+    private object _socketLock = new object();
 
     #region Constructors
 
@@ -156,7 +157,7 @@ namespace Daemaged.IBNet.Client
           _tcpClient.NoDelay = true;
           _tcpClient.Connect(_endPoint);
 
-          lock (_tcpClient) {
+          lock (_socketLock) {
             if (RecordForPlayback) {
               if (_recordStream == null)
                 _recordStream = SetupDefaultRecordStream();
@@ -224,24 +225,21 @@ namespace Daemaged.IBNet.Client
     /// </summary>
     public void Disconnect()
     {
-      lock (_tcpClient) {
+      lock (this) {
         if (!IsConnected)
           return;
-
-        lock (_tcpClient) {
-          lock (this) {
-            _doWork = false;
-            if (_tcpClient != null)
-              _tcpClient.Close();
-            _thread = null;
-            _tcpClient = null;
-            _stream = null;
-            if (RecordStream != null) {
-              RecordStream.Flush();
-              RecordStream.Close();
-            }
-            OnStatusChanged(Status = TWSClientStatus.Disconnected);
+        lock (_socketLock) {
+          _doWork = false;
+          if (_tcpClient != null)
+            _tcpClient.Close();
+          _thread = null;
+          _tcpClient = null;
+          _stream = null;
+          if (RecordStream != null) {
+            RecordStream.Flush();
+            RecordStream.Close();
           }
+          OnStatusChanged(Status = TWSClientStatus.Disconnected);
         }
       }
     }
@@ -251,10 +249,10 @@ namespace Daemaged.IBNet.Client
     /// </summary>
     public void Reconnect()
     {
-      if (!IsConnected)
-        return;
-
       lock (this) {
+        if (!IsConnected)
+          return;
+
         _reconnect = true;
         Disconnect();
         Connect(_clientId);
@@ -271,7 +269,7 @@ namespace Daemaged.IBNet.Client
     /// <param name="reqId">The scanner subscription request id</param>
     public void CancelScannerSubscription(int reqId)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -300,7 +298,7 @@ namespace Daemaged.IBNet.Client
     /// <param name="reqId">The historical data subscription request id</param>
     public void CancelHistoricalData(int reqId)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -325,7 +323,7 @@ namespace Daemaged.IBNet.Client
 
     public void CancelMarketData(int reqId)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         if (!IsConnected)
           throw new NotConnectedException();
         const int reqVersion = 1;
@@ -343,7 +341,7 @@ namespace Daemaged.IBNet.Client
 
     public void CancelMarketDepth(int reqId)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         if (!IsConnected)
           throw new NotConnectedException();
         if (ServerInfo.Version < 6) {
@@ -365,7 +363,7 @@ namespace Daemaged.IBNet.Client
 
     public void CancelNewsBulletins()
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -391,7 +389,7 @@ namespace Daemaged.IBNet.Client
     /// <exception cref="Daemaged.IBNet.Client.NotConnectedException"></exception>
     public void CancelOrder(int orderId)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         if (!IsConnected)
           throw new NotConnectedException();
         const int reqVersion = 1;
@@ -409,7 +407,7 @@ namespace Daemaged.IBNet.Client
 
     public void CancelRealTimeBars(int reqId)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -2107,7 +2105,7 @@ namespace Daemaged.IBNet.Client
     /// <exception cref="Daemaged.IBNet.Client.NotConnectedException"></exception>
     public virtual int PlaceOrder(IBContract contract, IBOrder order)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         if (!IsConnected)
           throw new NotConnectedException();
 
@@ -2501,7 +2499,7 @@ namespace Daemaged.IBNet.Client
       string account,
       int overrideOrder)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -2539,7 +2537,7 @@ namespace Daemaged.IBNet.Client
 
     public virtual void RequestServerLogLevelChange(int logLevel)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -2562,7 +2560,7 @@ namespace Daemaged.IBNet.Client
                                              string durationStr, int barSizeSetting,
                                              string whatToShow, int useRTH, int formatDate)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -2648,7 +2646,7 @@ namespace Daemaged.IBNet.Client
 
     public virtual int RequestMarketData(IBContract contract, IList<IBGenericTickType> genericTickList = null, bool snapshot = false, int reqId = 0)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         if (!IsConnected)
           throw new NotConnectedException();
 
@@ -2742,7 +2740,7 @@ namespace Daemaged.IBNet.Client
 
     public  void RequestManagedAccounts()
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -2763,7 +2761,7 @@ namespace Daemaged.IBNet.Client
 
     public void RequestFA(int faDataType)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -2787,7 +2785,7 @@ namespace Daemaged.IBNet.Client
 
     public void ReplaceFA(int faDataType, String xml)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -2812,7 +2810,7 @@ namespace Daemaged.IBNet.Client
 
     public void RequestScannerParameters()
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -2833,7 +2831,7 @@ namespace Daemaged.IBNet.Client
 
     public void RequestScannerSubscription(int tickerId, ScannerSubscription subscription)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -2879,7 +2877,7 @@ namespace Daemaged.IBNet.Client
 
     public void RequestMarketDataType(int marketDataType)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         if (!IsConnected)
           throw new NotConnectedException();
 
@@ -2902,7 +2900,7 @@ namespace Daemaged.IBNet.Client
 
     public void RequestFundamentalData(int reqId, IBContract contract, String reportType)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         if (!IsConnected)
           throw new NotConnectedException();
 
@@ -2935,7 +2933,7 @@ namespace Daemaged.IBNet.Client
 
     public void CancelFundamentalData(int reqId)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         if (!IsConnected)
           throw new NotConnectedException();
 
@@ -2958,7 +2956,7 @@ namespace Daemaged.IBNet.Client
 
     public void CalculateImpliedVolatility(int reqId, IBContract contract, double optionPrice, double underPrice)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         if (!IsConnected)
           throw new NotConnectedException();
 
@@ -2997,7 +2995,7 @@ namespace Daemaged.IBNet.Client
 
     public void CancelCalculateImpliedVolatility(int reqId)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         if (!IsConnected)
           throw new NotConnectedException();
 
@@ -3020,7 +3018,7 @@ namespace Daemaged.IBNet.Client
 
     public void CalculateOptionPrice(int reqId, IBContract contract, double volatility, double underPrice)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         if (!IsConnected)
           throw new NotConnectedException();
 
@@ -3059,7 +3057,7 @@ namespace Daemaged.IBNet.Client
 
     public void CancelCalculateOptionPrice(int reqId)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         if (!IsConnected)
           throw new NotConnectedException();
 
@@ -3082,7 +3080,7 @@ namespace Daemaged.IBNet.Client
 
     public void RequestGlobalCancel()
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -3106,7 +3104,7 @@ namespace Daemaged.IBNet.Client
     public virtual void RequestRealTimeBars(int reqId, IBContract contract,
                                             int barSize, string whatToShow, bool useRTH)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -3143,7 +3141,7 @@ namespace Daemaged.IBNet.Client
 
     public virtual int RequestMarketDepth(IBContract contract, int numRows)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         if (!IsConnected)
           throw new NotConnectedException();
 
@@ -3179,7 +3177,7 @@ namespace Daemaged.IBNet.Client
 
     public virtual void RequestAutoOpenOrders(bool autoBind)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -3200,7 +3198,7 @@ namespace Daemaged.IBNet.Client
 
     public virtual void RequestIds(int numIds)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -3220,7 +3218,7 @@ namespace Daemaged.IBNet.Client
 
     public virtual void RequestOpenOrders()
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -3240,7 +3238,7 @@ namespace Daemaged.IBNet.Client
 
     public virtual void RequestAccountUpdates(bool subscribe, string acctCode)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -3266,7 +3264,7 @@ namespace Daemaged.IBNet.Client
 
     public virtual void RequestAllOpenOrders()
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -3293,7 +3291,7 @@ namespace Daemaged.IBNet.Client
     /// <exception cref="Daemaged.IBNet.Client.NotConnectedException"></exception>
     public virtual int RequestExecutions(IBExecutionFilter filter)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -3332,7 +3330,7 @@ namespace Daemaged.IBNet.Client
 
     public virtual void RequestNewsBulletins(bool allMsgs)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -3360,7 +3358,7 @@ namespace Daemaged.IBNet.Client
     /// <exception cref="TWSOutdatedException"></exception>
     public virtual int RequestContractDetails(IBContract contract, int requestId = 0)
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
@@ -3415,7 +3413,7 @@ namespace Daemaged.IBNet.Client
 
     public virtual void RequestCurrentTime()
     {
-      lock (_tcpClient) {
+      lock (_socketLock) {
         // not connected?
         if (!IsConnected)
           throw new NotConnectedException();
