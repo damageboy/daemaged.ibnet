@@ -18,7 +18,7 @@ namespace IBGrid
         PutOrCall,
         Multiplier,
         Exchange,
-        Currency,        
+        Currency,
         Status,
         UpdateTime,
         TradeEvents,
@@ -27,7 +27,7 @@ namespace IBGrid
         BidDups,
         AskEvents,
         AskDups,
-        VolumeResets,       
+        VolumeResets,
         VolumeEvents,
         VolumeMisses,
         BidImpVol,
@@ -70,7 +70,7 @@ namespace IBGrid
     }
 
     public class IBSimplefiedContract
-    {        
+    {
         [GridCellInfo(IBGridColumn.Symbol)]
         public string Symbol { get; set; }
         [GridCellInfo(IBGridColumn.SecType)]

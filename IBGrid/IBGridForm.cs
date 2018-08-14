@@ -57,9 +57,9 @@ namespace IBGrid
     public IBGridForm(string[] args)
     {
       _twsHost = "localhost";
-      _twsPort = 7496;
+      _twsPort = 7497;
 
-     
+
       InitializeComponent();
 
       _grids = new List<Grid>();
@@ -98,17 +98,17 @@ namespace IBGrid
     {
       var options = new OptionSet {
         {"c|connect", "auto connect to TWS", v => _autoConnect = v != null},
-        {"h|host",    "TWS host", v => _twsHost = v},        
+        {"h|host",    "TWS host", v => _twsHost = v},
         {"p|port",    "TWS host", v => _twsPort = Int32.Parse(v)},
       };
       var extra = options.Parse(args);
       if (extra.Count > 1) {
         var sw = new StringWriter();
-        options.WriteOptionDescriptions(sw);               
+        options.WriteOptionDescriptions(sw);
         options.WriteOptionDescriptions(sw);
         MessageBox.Show(sw.ToString(), "Usage Error - too many files specified", MessageBoxButtons.OK,
                         MessageBoxIcon.Error);
-        
+
       }
       if (extra.Count == 1)
         _instrumentFile = extra.Single();
@@ -221,7 +221,7 @@ namespace IBGrid
     private void SetupMarketDataGridColumns(Grid grid)
     {
       var secType = (IBSecurityType) grid.Tag;
-      if (secType == IBSecurityType.FutureOption || secType == IBSecurityType.Option) 
+      if (secType == IBSecurityType.FutureOption || secType == IBSecurityType.Option)
         return;
       grid.Columns[(int) IBGridColumn.AskDelta].Visible = false;
       grid.Columns[(int) IBGridColumn.BidDelta].Visible = false;
@@ -243,7 +243,7 @@ namespace IBGrid
       {
         Type t = grid[1, (int) i].Tag as Type;
         grid[r, i] = new SourceGrid.Cells.Cell(null, t) {
-          Tag = t, 
+          Tag = t,
           View = _yellowView
         };
       }
@@ -283,7 +283,7 @@ namespace IBGrid
     private void ConnectButtonClick(object sender, EventArgs e)
     {
       var cf = new ConnectForm {
-        HostTextBox = {Text = _twsHost}, 
+        HostTextBox = {Text = _twsHost},
         PortTextBox = {Text = _twsPort.ToString()}
       };
 
@@ -299,7 +299,7 @@ namespace IBGrid
     private void ConnectLocalButtonClick(object sender, EventArgs e)
     {
       _twsHost = "localhost";
-      _twsPort = 7496;
+      _twsPort = 7497;
 
       ConnectToTWS(_twsHost, _twsPort);
     }
@@ -316,14 +316,14 @@ namespace IBGrid
 
     private void LogSizeTextBoxTimerTick(object sender, EventArgs e)
     {
-      if (_client.RecordStream == null) 
+      if (_client.RecordStream == null)
         return;
       var fs = _client.RecordStream;
 
       logSizeTextBox.Text = fs.Length > 1024*1024
-        ? (fs.Length > 1024*1024*1024 ? 
-            String.Format("{0:F2} GB", fs.Length/(1024*1024*1024.0)) : 
-            String.Format("{0:F2} MB", fs.Length/(1024*1024.0))) : 
+        ? (fs.Length > 1024*1024*1024 ?
+            String.Format("{0:F2} GB", fs.Length/(1024*1024*1024.0)) :
+            String.Format("{0:F2} MB", fs.Length/(1024*1024.0))) :
           String.Format("{0:F2} KB", fs.Length/(1024.0));
     }
 
@@ -446,8 +446,8 @@ namespace IBGrid
 
     private void RecordButtonBlinkTimerTick(object sender, EventArgs e)
     {
-      recordMarketDataButton.BackColor = recordMarketDataButton.BackColor == Color.Red ? 
-        SystemColors.Control : 
+      recordMarketDataButton.BackColor = recordMarketDataButton.BackColor == Color.Red ?
+        SystemColors.Control :
         Color.Red;
     }
 
@@ -478,9 +478,13 @@ namespace IBGrid
     #endregion
 
     #region TWS Client Events
-    [UIThread]
     private void ClientError(object sender, TWSClientErrorEventArgs e)
     {
+      if (InvokeRequired) {
+        BeginInvoke(new MethodInvoker(() => ClientError(sender, e)));
+        return;
+      }
+
       var i = 0;
       logGrid.Rows.Insert(_logGridRow);
       logGrid[_logGridRow, i] = new SourceGrid.Cells.Cell(DateTime.Now);
@@ -540,9 +544,14 @@ namespace IBGrid
       file.WriteLine("{0},{1},{2},{3}", ts.Ticks, last, size, (int) tickType);
     }
 
-    [UIThread]
     private void ClientStatusChanged(object sender, TWSClientStatusEventArgs e)
     {
+      if (InvokeRequired)
+      {
+        BeginInvoke(new MethodInvoker(() => ClientStatusChanged(sender, e)));
+        return;
+      }
+
       statusButton.Image = (_client.IsConnected)
                              ? Properties.Resources.bullet_square_green
                              : Properties.Resources.bullet_square_red;
@@ -813,7 +822,7 @@ namespace IBGrid
     {
       contracts.Clear();
       // The last row is always empty
-      for (var i = 1; i < grid.Rows.Count - 1; i++) {        
+      for (var i = 1; i < grid.Rows.Count - 1; i++) {
         try {
           var contract = new IBSimplefiedContract {
             SecurityType = (IBSecurityType) grid[i, (int) IBGridColumn.SecType].Value,
