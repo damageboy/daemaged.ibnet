@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -23,7 +20,7 @@ namespace IBGrid
                 sender.Grid.Selection.SelectRow(sender.CellRange.Start.Row, true);
             }
         }
-    }  
+    }
 
     class RotatedText : DevAge.Drawing.VisualElements.TextGDI
     {

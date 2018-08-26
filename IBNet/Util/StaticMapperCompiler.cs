@@ -42,8 +42,8 @@ namespace IBNet.Util
         case TypeCode.String:
           return KeyType.String;
         default:
-          return KeyType.Unsuppoeted;         
-      }           
+          return KeyType.Unsuppoeted;
+      }
     }
 
     public static Func<TK, bool> CompileHashSetFunc<TK>(IEnumerable<TK> data)
@@ -63,7 +63,7 @@ namespace IBNet.Util
     {
       switch (GetKeyType(typeof(TK))) {
         case KeyType.Integer:
-          return CompileIntegerMapper(data);          
+          return CompileIntegerMapper(data);
         case KeyType.String:
           return CompileStringMapper<TK, TV>(data.Cast<KeyValuePair<string, TV>>());
         default:
@@ -74,7 +74,7 @@ namespace IBNet.Util
     private static Func<TK, TV> CompileIntegerMapper<TK, TV>(IEnumerable<KeyValuePair<TK, TV>> data, bool throwWhenNotFound = true, TV notFoundValue = default(TV))
     {
       var handleIntPtr = IsNativeInt(typeof (TK));
-      
+
       var param = Expression.Parameter(typeof(TK));
       var realT = typeof(TK);
       Expression realParam = param;
@@ -96,7 +96,7 @@ namespace IBNet.Util
           }
         }
         else
-        { // UIntPtr        
+        { // UIntPtr
           //Type.GetType("System.NativeUInt");
           if (UIntPtr.Size == 8)
           {
@@ -111,13 +111,13 @@ namespace IBNet.Util
         }
         realParam = Expression.Convert(param, realT);
       }
-      //var t = typeof (void*);     
+      //var t = typeof (void*);
       //Console.WriteLine(t.ToString());
 
-      var defaultExpr = throwWhenNotFound ? 
+      var defaultExpr = throwWhenNotFound ?
         (Expression) Expression.Block(
           Expression.Throw(GenerateKeyNotFoundException(param)),
-          Expression.Constant(notFoundValue, typeof (TV))) : 
+          Expression.Constant(notFoundValue, typeof (TV))) :
         Expression.Constant(notFoundValue);
 
       var sw = Expression.Switch(realParam, defaultExpr,
@@ -146,7 +146,7 @@ namespace IBNet.Util
     {
       var cases = dict.Select(pair => new SwitchCase<TV>(pair.Key, pair.Value)).ToList();
       var keyParameter = Expression.Parameter(typeof(string), "key");
-      
+
       var defaultExpr = throwWhenNotFound ?
         (Expression)Expression.Block(
           Expression.Throw(GenerateKeyNotFoundException(keyParameter)),
@@ -155,7 +155,7 @@ namespace IBNet.Util
       var expr = Expression.Lambda<Func<TK, TV>>(
         SwitchOnLength(keyParameter, defaultExpr, cases.OrderBy(switchCase => switchCase.Key.Length).ToArray(), 0, cases.Count - 1), new[] { keyParameter });
       var del = expr.Compile();
-      return del;      
+      return del;
     }
 
 

@@ -6,25 +6,25 @@
 //  by Dan Shechter
 ////////////////////////////////////////////////////////////////////////////////////////
 //  License: MPL 1.1/GPL 2.0/LGPL 2.1
-//  
-//  The contents of this file are subject to the Mozilla Public License Version 
-//  1.1 (the "License"); you may not use this file except in compliance with 
-//  the License. You may obtain a copy of the License at 
+//
+//  The contents of this file are subject to the Mozilla Public License Version
+//  1.1 (the "License"); you may not use this file except in compliance with
+//  the License. You may obtain a copy of the License at
 //  http://www.mozilla.org/MPL/
-//  
+//
 //  Software distributed under the License is distributed on an "AS IS" basis,
 //  WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 //  for the specific language governing rights and limitations under the
 //  License.
-//  
+//
 //  The Original Code is any part of this file that is not marked as a contribution.
-//  
+//
 //  The Initial Developer of the Original Code is Dan Shecter.
 //  Portions created by the Initial Developer are Copyright (C) 2007
 //  the Initial Developer. All Rights Reserved.
-//  
+//
 //  Contributor(s): None.
-//  
+//
 //  Alternatively, the contents of this file may be used under the terms of
 //  either the GNU General Public License Version 2 or later (the "GPL"), or
 //  the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
@@ -42,7 +42,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
@@ -94,7 +93,7 @@ namespace Daemaged.IBNet
 
     private static readonly Dictionary<Type, EnumEncDec> _enumDecoders;
 
-    protected Stream _stream;    
+    protected Stream _stream;
 
     static TWSEncoding()
     {
@@ -146,7 +145,7 @@ namespace Daemaged.IBNet
     {
       Encode(expiry.ToString(IB_EXPIRY_DATE_FORMAT));
     }
-    
+
     private static class IntCaster<T>
     {
       private static int Identity(int x){return x;}
@@ -158,7 +157,7 @@ namespace Daemaged.IBNet
         ToT   = Delegate.CreateDelegate(typeof(Func<int, T>), _identity.Method) as Func<int, T>;
       }
       public static Func<T, int> ToInt { get; private set; }
-      public static Func<int, T> ToT { get; private set; }      
+      public static Func<int, T> ToT { get; private set; }
     }
     public void Encode<T>(T value) where T : struct, IConvertible
     {
@@ -264,7 +263,7 @@ namespace Daemaged.IBNet
     {
       var txt = DecodeString();
       return txt == null ? Int32.MaxValue : Int32.Parse(txt);
-      
+
     }
 
     public virtual long DecodeLong()
@@ -300,13 +299,13 @@ namespace Daemaged.IBNet
       }
       decode_string_finished:
       return sb.Length != 0 ? sb.ToString() : null;
-    }    
+    }
 
     public T DecodeEnum<T>() where T : struct, IConvertible
     {
       var t = typeof (T);
       var intValue = _enumDecoders.ContainsKey(t) ?
-        _enumDecoders[t].EnumDeserializares[DecodeString() ?? String.Empty] : 
+        _enumDecoders[t].EnumDeserializares[DecodeString() ?? String.Empty] :
         DecodeInt();
       // Is this a TWS string based enum?
       return IntCaster<T>.ToT(intValue);

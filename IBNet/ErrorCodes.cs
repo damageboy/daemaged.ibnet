@@ -6,25 +6,25 @@
 //  by Dan Shechter
 ////////////////////////////////////////////////////////////////////////////////////////
 //  License: MPL 1.1/GPL 2.0/LGPL 2.1
-//  
-//  The contents of this file are subject to the Mozilla Public License Version 
-//  1.1 (the "License"); you may not use this file except in compliance with 
-//  the License. You may obtain a copy of the License at 
+//
+//  The contents of this file are subject to the Mozilla Public License Version
+//  1.1 (the "License"); you may not use this file except in compliance with
+//  the License. You may obtain a copy of the License at
 //  http://www.mozilla.org/MPL/
-//  
+//
 //  Software distributed under the License is distributed on an "AS IS" basis,
 //  WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 //  for the specific language governing rights and limitations under the
 //  License.
-//  
+//
 //  The Original Code is any part of this file that is not marked as a contribution.
-//  
+//
 //  The Initial Developer of the Original Code is Dan Shecter.
 //  Portions created by the Initial Developer are Copyright (C) 2007
 //  the Initial Developer. All Rights Reserved.
-//  
+//
 //  Contributor(s): None.
-//  
+//
 //  Alternatively, the contents of this file may be used under the terms of
 //  either the GNU General Public License Version 2 or later (the "GPL"), or
 //  the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
@@ -47,7 +47,7 @@ using System.Reflection;
 namespace Daemaged.IBNet
 {
   public class TWSError
-  {  
+  {
     public TWSError(int code, string message, bool dropDead = false)
     {
       Code = code;
@@ -289,7 +289,7 @@ namespace Daemaged.IBNet
 
 
     static TWSErrors()
-    {     
+    {
       MAX_RATE_EXCEEDED = new TWSError(100, @"Max rate of messages per second has been exceeded.");
       MAX_TICKERS_REACHED = new TWSError(101, @"Max number of tickers has been reached.");
       DUPLICATE_TICKER_ID = new TWSError(102, @"Duplicate ticker ID.");
@@ -361,7 +361,7 @@ namespace Daemaged.IBNet
       ERROR_166 = new TWSError(166, "HMDS Expired Contract Violation.");
       ERROR_167 = new TWSError(167, "VWAP order time must be in the future.");
       ERROR_168 = new TWSError(168, "Discretionary amount does not conform to the minimum price variation for this contract.");
-      
+
       ERROR_200 = new TWSError(200, @"No security definition has been found for the request");
       ORDER_REJECTED = new TWSError(201, @"Order rejected - reason:");
       ORDER_CANCELLED = new TWSError(202, @"Order Cancelled - reason:");
@@ -539,7 +539,7 @@ namespace Daemaged.IBNet
         where m.ReflectedType == typeof (TWSError)
         select m;
 
-               
+
     }
   }
 }

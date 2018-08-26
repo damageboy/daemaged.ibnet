@@ -48,11 +48,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-
-#if NET_4_5
 using System.Threading.Tasks;
 using Daemaged.IBNet.Util;
-#endif
 
 namespace Daemaged.IBNet.Client
 {
@@ -62,15 +59,15 @@ namespace Daemaged.IBNet.Client
   public class TWSClient
   {
     public const string DEFAULT_HOST = "127.0.0.1";
-    public const int DEFAULT_PORT = 7496;
+    public const int DEFAULT_PORT = 7497;
     private const int DEFAULT_WAIT_TIMEOUT = 10000;
     private const string IB_DATE_FORMAT = "yyyyMMdd  HH:mm:ss";
     private const string IB_EXPIRY_DATE_FORMAT = "yyyyMMdd";
     private const string IB_HISTORICAL_COMPLETED = "finished";
     private readonly Dictionary<int, OrderRecord> _orderRecords = new Dictionary<int, OrderRecord>();
-#if NET_4_5
+
     private readonly IDictionary<int, IFaultable> _asyncCalls = new ConcurrentDictionary<int, IFaultable>();
-#endif
+
     private int _clientId;
     private bool _doWork;
     protected ITWSEncoding _enc;
@@ -797,18 +794,19 @@ namespace Daemaged.IBNet.Client
           Contract = contract
         });
 
-      if (OrderChanged != null) {
-        OrderRecord or;
-        if (_orderRecords.TryGetValue(orderId, out or))
-        {
-          OrderChanged(this, new TWSOrderChangedEventArgs(this, or) {
-            ChangeType = IBOrderChangeType.OpenOrder,
-            ReportedContract = contract,
-            OpenOrder = order,
-            OpenOrderState = orderState
-          });
-        }
-      }
+      // TODO: remove this callback from here!
+      //if (OrderChanged != null) {
+      //  OrderRecord or;
+      //  if (_orderRecords.TryGetValue(orderId, out or))
+      //  {
+      //    OrderChanged(this, new TWSOrderChangedEventArgs(this, or) {
+      //      ChangeType = IBOrderChangeType.OpenOrder,
+      //      ReportedContract = contract,
+      //      OpenOrder = order,
+      //      OpenOrderState = orderState
+      //    });
+      //  }
+      //}
     }
 
     protected void OnBondContractDetails(int reqId, IBContractDetails contract)
@@ -994,7 +992,6 @@ namespace Daemaged.IBNet.Client
     #endregion Event Notifiers
 
     #region Synchronized Request Wrappers
-#if NET_4_5
 
     public async Task<IList<IBContractDetails>> GetContractDetailsAsync(IBContract c)
     {
@@ -1010,7 +1007,6 @@ namespace Daemaged.IBNet.Client
       return results;
     }
 
-#endif
     #endregion Synchronized Request Wrappers
 
     #region Raw Server Mesage Processing
@@ -1019,7 +1015,7 @@ namespace Daemaged.IBNet.Client
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
-#if NET_4_5
+
         ProgressiveTaskCompletionSource<object> completion = null;
         IFaultable tmp;
         if (_asyncCalls.TryGetValue(reqId, out tmp)) {
@@ -1027,7 +1023,6 @@ namespace Daemaged.IBNet.Client
           // Just signal the async version that the subscription is OK for sure
           completion.SetResult(null);
         }
-#endif
 
         var tickType = _enc.DecodeEnum<IBTickType>();
         var price = _enc.DecodeDouble();
@@ -1045,7 +1040,7 @@ namespace Daemaged.IBNet.Client
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
-#if NET_4_5
+
       ProgressiveTaskCompletionSource<object> completion = null;
       IFaultable tmp;
       if (_asyncCalls.TryGetValue(reqId, out tmp)) {
@@ -1053,7 +1048,7 @@ namespace Daemaged.IBNet.Client
         // Just signal the async version that the subscription is OK for sure
         completion.SetResult(null);
       }
-#endif
+
       var tickType = _enc.DecodeEnum<IBTickType>();
       var size = _enc.DecodeInt();
       OnTickSize(reqId, tickType, size);
@@ -1094,7 +1089,7 @@ namespace Daemaged.IBNet.Client
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
-#if NET_4_5
+
       ProgressiveTaskCompletionSource<object> completion = null;
       IFaultable tmp;
       if (_asyncCalls.TryGetValue(reqId, out tmp))
@@ -1103,7 +1098,6 @@ namespace Daemaged.IBNet.Client
         // Just signal the async version that the subscription is OK for sure
         completion.SetResult(null);
       }
-#endif
 
       var tickType = _enc.DecodeEnum<IBTickType>();
       var value = _enc.DecodeString();
@@ -1115,7 +1109,7 @@ namespace Daemaged.IBNet.Client
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
-#if NET_4_5
+
       ProgressiveTaskCompletionSource<object> completion = null;
       IFaultable tmp;
       if (_asyncCalls.TryGetValue(reqId, out tmp))
@@ -1124,7 +1118,6 @@ namespace Daemaged.IBNet.Client
         // Just signal the async version that the subscription is OK for sure
         completion.SetResult(null);
       }
-#endif
 
       var tickType = _enc.DecodeEnum<IBTickType>();
       var value = _enc.DecodeDouble();
@@ -1139,33 +1132,28 @@ namespace Daemaged.IBNet.Client
         OnError(message);
       }
       else {
-#if NET_4_5
+
         IFaultable completion = null;
 
         try {
-#endif
+
           var id = _enc.DecodeInt();
-#if NET_4_5
 
           _asyncCalls.TryGetValue(id, out completion);
 
-#endif
           var errorCode = _enc.DecodeInt();
           var message = _enc.DecodeString();
           var twsError = new TWSError(errorCode, message);
-#if NET_4_5
+
           if (completion != null)
             completion.TrySetException(new TWSServerException(twsError));
           else
-#endif
             OnError(id, twsError, String.Empty);
-#if NET_4_5
         } catch (Exception e) {
           if (completion != null)
             completion.TrySetException(e);
           throw;
         }
-#endif
       }
     }
 
@@ -1504,21 +1492,17 @@ namespace Daemaged.IBNet.Client
 
     private void ProcessContractData()
     {
-#if NET_4_5
       ProgressiveTaskCompletionSource<List<IBContractDetails>> completion = null;
 
       try
       {
-#endif
         var version = _enc.DecodeInt();
         var reqId = -1;
         if (version >= 3)
           reqId = _enc.DecodeInt();
-#if NET_4_5
         IFaultable tmp;
         if (_asyncCalls.TryGetValue(reqId, out tmp))
           completion = (ProgressiveTaskCompletionSource<List<IBContractDetails>>)tmp;
-#endif
         var contractDetails = new IBContractDetails {
           Summary = {
             Symbol = _enc.DecodeString(),
@@ -1569,19 +1553,15 @@ namespace Daemaged.IBNet.Client
               contractDetails.SecIdList.Add(new IBTagValue { Tag = _enc.DecodeString(), Value = _enc.DecodeString() });
           }
         }
-#if NET_4_5
         if (completion != null)
           completion.Value.Add(contractDetails);
         else
-#endif
           OnContractDetails(reqId, contractDetails);
-#if NET_4_5
       } catch (Exception e) {
         if (completion != null)
           completion.SetException(e);
         throw;
       }
-#endif
     }
 
     private static DateTime? DecodeIBExpiry(ITWSEncoding enc)
@@ -1634,7 +1614,7 @@ namespace Daemaged.IBNet.Client
           EvMultiplier = version >= 9 ? _enc.DecodeDouble() : 0
         };
 
-      OnExecutionDetails(reqId, contract, execution);
+      OnExecutionDetails(orderId, contract, execution);
     }
 
     private void ProcessMarketDepth()
@@ -1925,15 +1905,12 @@ namespace Daemaged.IBNet.Client
 
     private void ProcessContractDataEnd()
     {
-#if NET_4_5
       ProgressiveTaskCompletionSource<List<IBContractDetails>> completion = null;
 
       try
       {
-#endif
         var version = _enc.DecodeInt();
         var reqId = _enc.DecodeInt();
-#if NET_4_5
         IFaultable tmp;
         if (_asyncCalls.TryGetValue(reqId, out tmp))
           completion = (ProgressiveTaskCompletionSource<List<IBContractDetails>>) tmp;
@@ -1941,16 +1918,13 @@ namespace Daemaged.IBNet.Client
         if (completion != null)
           completion.SetCompleted();
         else
-#endif
         OnContractDetailsEnd(reqId);
 
-#if NET_4_5
       } catch (Exception e) {
         if (completion != null)
           completion.SetException(e);
         throw;
       }
-#endif
     }
 
     private void ProcessOpenOrderEnd()
@@ -2030,10 +2004,8 @@ namespace Daemaged.IBNet.Client
       }
       catch (Exception e) {
         OnException(e);
-#if NET_4_5
         foreach (var f in _asyncCalls.Values)
           f.TrySetException(new TWSDisconnectedException());
-#endif
       }
       finally {
         Disconnect();
@@ -2620,7 +2592,6 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-#if NET_4_5
 
     public async Task<int> RequestMarketDataAsync(IBContract contract, IList<IBGenericTickType> tickList = null, bool snapshot = false)
     {
@@ -2642,7 +2613,6 @@ namespace Daemaged.IBNet.Client
       return id;
     }
 
-#endif
 
     public virtual int RequestMarketData(IBContract contract, IList<IBGenericTickType> genericTickList = null, bool snapshot = false, int reqId = 0)
     {
@@ -3582,9 +3552,7 @@ namespace Daemaged.IBNet.Client
     /// <summary>
     /// Occurs when TWS responds with retrieved contract details in response to
     /// a <see cref="RequestContractDetails"/>
-#if NET_4_5
     /// or <see cref="GetContractDetailsAsync"/>
-#endif
     /// call
     /// </summary>
     public event EventHandler<TWSContractDetailsEventArgs> ContractDetails;
