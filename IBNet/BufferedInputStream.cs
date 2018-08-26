@@ -57,12 +57,12 @@ namespace Daemaged.IBNet
   /// </summary>
   internal class BufferedReadStream : Stream
   {
-    private const int DEFAULT_BUFFER_SIZE = 4096;
-    private readonly int _bufferSize; // Length of internal buffer, if it's allocated.
-    private byte[] _buffer; // Shared read buffer, allocated in lazy fashion
-    private int _readLen; // Number of bytes read in buffer from _s.
-    private int _readPos; // Read pointer within shared buffer.
-    private Stream _s; // Underlying stream
+    const int DEFAULT_BUFFER_SIZE = 4096;
+    readonly int _bufferSize; // Length of internal buffer, if it's allocated.
+    byte[] _buffer; // Shared read buffer, allocated in lazy fashion
+    int _readLen; // Number of bytes read in buffer from _s.
+    int _readPos; // Read pointer within shared buffer.
+    Stream _s; // Underlying stream
 
     public BufferedReadStream(Stream stream)
       : this(stream, DEFAULT_BUFFER_SIZE) {}
@@ -169,7 +169,7 @@ namespace Daemaged.IBNet
     // 1 byte from the buffer then write.  At that point, the OS's file
     // pointer is out of sync with the stream's position.  All write 
     // functions should call this function to preserve the position in the file.
-    private void FlushRead()
+    void FlushRead()
     {
       if (_readPos - _readLen != 0)
         _s.Seek(_readPos - _readLen, SeekOrigin.Current);
@@ -191,7 +191,7 @@ namespace Daemaged.IBNet
       if (_s == null)
         Error_StreamIsClosed();
 
-      int n = _readLen - _readPos;
+      var n = _readLen - _readPos;
       // if the read buffer is empty, read into either user's array or our
       // buffer, depending on number of bytes user asked for and buffer size.
       if (n == 0) {
@@ -226,7 +226,7 @@ namespace Daemaged.IBNet
       _readPos += n;
 
       if (n < count) {
-        int moreBytesRead = _s.Read(array, offset + n, count - n);
+        var moreBytesRead = _s.Read(array, offset + n, count - n);
         n += moreBytesRead;
         _readPos = 0;
         _readLen = 0;
@@ -290,8 +290,8 @@ namespace Daemaged.IBNet
             _readLen = 0;
             return _s.Seek(offset, origin);
             */
-      long oldPos = _s.Position + (_readPos - _readLen);
-      long pos = _s.Seek(offset, origin);
+      var oldPos = _s.Position + (_readPos - _readLen);
+      var pos = _s.Seek(offset, origin);
 
       // We now must update the read buffer.  We can in some cases simply
       // update _readPos within the buffer, copy around the buffer so our 
@@ -350,22 +350,22 @@ namespace Daemaged.IBNet
       _s.SetLength(value);
     }
 
-    private void Error_StreamIsClosed()
+    void Error_StreamIsClosed()
     {
       throw new IOException("The underlying stream is closed");
     }
 
-    private void Error_SeekNotSupported()
+    void Error_SeekNotSupported()
     {
       throw new Exception("The underlying stream does not support seeking");
     }
 
-    private void Error_ReadNotSupported()
+    void Error_ReadNotSupported()
     {
       throw new Exception("The underlying stream does not support reading");
     }
 
-    private void Error_WriteNotSupported()
+    void Error_WriteNotSupported()
     {
       throw new Exception("The underlying stream does not support writing");
     }

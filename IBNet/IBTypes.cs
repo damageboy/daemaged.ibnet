@@ -127,7 +127,7 @@ namespace Daemaged.IBNet
     // 60 = can receive deltaNeutralOpenClose, deltaNeutralShortSale, deltaNeutralShortSaleSlot and deltaNeutralDesignatedLocation in openOrder
 
 
-    private const int CLIENT_VERSION = 60;
+    const int CLIENT_VERSION = 60;
 
     public TWSClientInfo(int version)
     {

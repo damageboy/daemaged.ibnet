@@ -54,10 +54,10 @@ namespace Daemaged.IBNet
 
   public class TWSEncoding : ITWSEncoding
   {
-    private class EnumEncDec
+    class EnumEncDec
     {
-      private readonly IDictionary<int, string> _enumSerializares;
-      private readonly IDictionary<string, int> _enumDeserializares;
+      readonly IDictionary<int, string> _enumSerializares;
+      readonly IDictionary<string, int> _enumDeserializares;
 
       internal EnumEncDec(Type t)
       {
@@ -69,7 +69,7 @@ namespace Daemaged.IBNet
       public IDictionary<string, int> EnumDeserializares { get { return _enumDeserializares; } }
       public IDictionary<int, string> EnumSerializares { get { return _enumSerializares; } }
 
-      private static IDictionary<string, int> GenerateDeserializationDictionary(Type e)
+      static IDictionary<string, int> GenerateDeserializationDictionary(Type e)
       {
         var map =
           Enum.GetValues(e).Cast<int>().Zip(Enum.GetNames(e), (Value, Name) => new { Value, Name }).ToDictionary(
@@ -80,7 +80,7 @@ namespace Daemaged.IBNet
 
       }
 
-      private static IDictionary<int, string> GenerateSerializationDictionary(Type e)
+      static IDictionary<int, string> GenerateSerializationDictionary(Type e)
       {
         return Enum.GetValues(e).Cast<int>().Zip(Enum.GetNames(e), (Value, Name) => new { Value, Name }).ToDictionary(
           v => v.Value,
@@ -88,10 +88,10 @@ namespace Daemaged.IBNet
       }
     }
 
-    private const string IB_EXPIRY_DATE_FORMAT = "yyyyMMdd";
-    private readonly string NUMBER_DECIMAL_SEPARATOR;
+    const string IB_EXPIRY_DATE_FORMAT = "yyyyMMdd";
+    readonly string NUMBER_DECIMAL_SEPARATOR;
 
-    private static readonly Dictionary<Type, EnumEncDec> _enumDecoders;
+    static readonly Dictionary<Type, EnumEncDec> _enumDecoders;
 
     protected Stream _stream;
 
@@ -106,7 +106,7 @@ namespace Daemaged.IBNet
       _enumDecoders = enums.ToDictionary(x => x, x => new EnumEncDec(x));
     }
 
-    private static void ValidateAllValuesAreMapped(Type e)
+    static void ValidateAllValuesAreMapped(Type e)
     {
       var fields = e.GetFields(BindingFlags.Public | BindingFlags.Static);
       var q =
@@ -115,7 +115,7 @@ namespace Daemaged.IBNet
         select v;
 
       if (fields.Length != q.Count())
-        throw new ArgumentException(string.Format("Type {0} doesn't have seriazliation value for each member", e));
+        throw new ArgumentException($"Type {e} doesn't have seriazliation value for each member");
     }
 
     public TWSEncoding(Stream stream)
@@ -146,10 +146,10 @@ namespace Daemaged.IBNet
       Encode(expiry.ToString(IB_EXPIRY_DATE_FORMAT));
     }
 
-    private static class IntCaster<T>
+    static class IntCaster<T>
     {
-      private static int Identity(int x){return x;}
-      private static Func<int, int> _identity = Identity;
+      static int Identity(int x){return x;}
+      static Func<int, int> _identity = Identity;
 
       static IntCaster()
       {
@@ -211,7 +211,7 @@ namespace Daemaged.IBNet
 
     public virtual DateTime DecodeExpiryDate()
     {
-      string expiryString = DecodeString();
+      var expiryString = DecodeString();
       if (expiryString != null && expiryString.Length > 0)
         return DateTime.ParseExact(expiryString, IB_EXPIRY_DATE_FORMAT, CultureInfo.InvariantCulture);
 

@@ -5,8 +5,8 @@ namespace IBNet.Util
 {
   internal class StaticStringDictionaryComparer : IComparer<string>
   {
-    private static readonly Dictionary<int, IComparer<string>> _comparers = new Dictionary<int, IComparer<string>>();
-    private readonly int _startIndex;
+    static readonly Dictionary<int, IComparer<string>> _comparers = new Dictionary<int, IComparer<string>>();
+    readonly int _startIndex;
 
     public StaticStringDictionaryComparer(int startIndex)
     {

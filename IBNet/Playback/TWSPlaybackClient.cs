@@ -6,25 +6,25 @@
 //  by Dan Shechter
 ////////////////////////////////////////////////////////////////////////////////////////
 //  License: MPL 1.1/GPL 2.0/LGPL 2.1
-//  
-//  The contents of this file are subject to the Mozilla Public License Version 
-//  1.1 (the "License"); you may not use this file except in compliance with 
-//  the License. You may obtain a copy of the License at 
+//
+//  The contents of this file are subject to the Mozilla Public License Version
+//  1.1 (the "License"); you may not use this file except in compliance with
+//  the License. You may obtain a copy of the License at
 //  http://www.mozilla.org/MPL/
-//  
+//
 //  Software distributed under the License is distributed on an "AS IS" basis,
 //  WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 //  for the specific language governing rights and limitations under the
 //  License.
-//  
+//
 //  The Original Code is any part of this file that is not marked as a contribution.
-//  
+//
 //  The Initial Developer of the Original Code is Dan Shecter.
 //  Portions created by the Initial Developer are Copyright (C) 2007
 //  the Initial Developer. All Rights Reserved.
-//  
+//
 //  Contributor(s): None.
-//  
+//
 //  Alternatively, the contents of this file may be used under the terms of
 //  either the GNU General Public License Version 2 or later (the "GPL"), or
 //  the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
@@ -56,20 +56,20 @@ namespace Daemaged.IBNet.Playback
 
   public class TWSPlaybackClient : TWSClient
   {
-    private readonly Stream _logStream;
-    private Mutex _clientMutex;
-    private Thread _clientThread;
-    private bool _doWork;
-    private int _lastMsgSize;
-    private DateTime _lastTimeStamp;
-    private bool _loginCompleted;
-    private TWSServerClientHandler _loopbackServer;
-    private DateTime _nextTimeStamp;
-    private int _numMessages;
-    private long _position;
-    private BinaryReader _reader;
-    private Mutex _serverMutex;
-    private Thread _serverThread;
+    readonly Stream _logStream;
+    Mutex _clientMutex;
+    Thread _clientThread;
+    bool _doWork;
+    int _lastMsgSize;
+    DateTime _lastTimeStamp;
+    bool _loginCompleted;
+    TWSServerClientHandler _loopbackServer;
+    DateTime _nextTimeStamp;
+    int _numMessages;
+    long _position;
+    BinaryReader _reader;
+    Mutex _serverMutex;
+    Thread _serverThread;
 
     public TWSPlaybackClient(string fileName)
     {
@@ -124,7 +124,7 @@ namespace Daemaged.IBNet.Playback
       _doWork = false;
     }
 
-    private void Init()
+    void Init()
     {
       // Create threads to handle the messages
       _clientThread = new Thread(ProcessClientMessages);
@@ -152,35 +152,35 @@ namespace Daemaged.IBNet.Playback
       _loopbackServer.MarketDepthCancel += LoopbackServer_MarketDepthCancel;
     }
 
-    private void LoopbackServer_Login(object sender, TWSServerEventArgs e)
+    void LoopbackServer_Login(object sender, TWSServerEventArgs e)
     {
       _loginCompleted = true;
     }
 
-    private void LoopbackServer_MarketDataRequest(object sender, TWSMarketDataRequestEventArgs e)
+    void LoopbackServer_MarketDataRequest(object sender, TWSMarketDataRequestEventArgs e)
     {
       // Have any market data request sent to the loopback server
       // simulate the end-result of a SendMarketDataRequest() call...
       _marketDataRecords.Add(e.ReqId, new TWSMarketDataSnapshot(e.Contract, e.ReqId));
     }
 
-    private void LoopbackServer_MarketDepthCancel(object sender, TWSMarketDataCancelEventArgs e)
+    void LoopbackServer_MarketDepthCancel(object sender, TWSMarketDataCancelEventArgs e)
     {
       // Have any market data request sent to the loopback server
       // simulate the end-result of a CancelMarketDataRequest() call...
       _marketDataRecords.Remove(e.ReqId);
     }
 
-    private void ProcessServerMessaages() {}
+    void ProcessServerMessaages() {}
 
 
-    private void ProcessClientMessages()
+    void ProcessClientMessages()
     {
       while (_doWork) {
         ProcessSingleMessage();
       }
 
-      IBPlaybackMessage msg = ReadLogMetaData();
+      var msg = ReadLogMetaData();
       switch (msg) {
         case IBPlaybackMessage.Receive:
           // Read a single message processing it
@@ -195,7 +195,7 @@ namespace Daemaged.IBNet.Playback
       }
     }
 
-    private IBPlaybackMessage ReadLogMetaData()
+    IBPlaybackMessage ReadLogMetaData()
     {
       var msg = (IBPlaybackMessage) _reader.ReadUInt32();
       _lastTimeStamp = _nextTimeStamp;

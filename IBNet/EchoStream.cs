@@ -186,18 +186,18 @@ namespace Daemaged.IBNet
 
     #region Private Implementation Variables
 
-    private readonly Stream _primaryStream;
-    private readonly Stream _slaveStream;
-    private int m_lastReadResult;
+    readonly Stream _primaryStream;
+    readonly Stream _slaveStream;
+    int m_lastReadResult;
 
-    private SlaveFailAction m_readFailAction = SlaveFailAction.Propogate;
-    private SlaveFailAction m_seekFailAction = SlaveFailAction.Propogate;
+    SlaveFailAction m_readFailAction = SlaveFailAction.Propogate;
+    SlaveFailAction m_seekFailAction = SlaveFailAction.Propogate;
 
-    private SlaveFailHandler m_slaveReadFailFilter;
-    private SlaveFailHandler m_slaveSeekFailFilter;
-    private SlaveFailHandler m_slaveWriteFailFilter;
-    private StreamOwnership m_streamsOwned;
-    private SlaveFailAction m_writeFailAction = SlaveFailAction.Propogate;
+    SlaveFailHandler m_slaveReadFailFilter;
+    SlaveFailHandler m_slaveSeekFailFilter;
+    SlaveFailHandler m_slaveWriteFailFilter;
+    StreamOwnership m_streamsOwned;
+    SlaveFailAction m_writeFailAction = SlaveFailAction.Propogate;
 
     #endregion // Private Implementation Variables
 
@@ -621,7 +621,7 @@ namespace Daemaged.IBNet
         // change in position in the primary stream, rather than being
         // set directly to the given value.
 
-        long diff = value - _primaryStream.Position;
+        var diff = value - _primaryStream.Position;
 
         _primaryStream.Position = value;
 
@@ -701,7 +701,7 @@ namespace Daemaged.IBNet
     /// </summary>
     public override void SetLength(long len)
     {
-      long diff = len - _primaryStream.Length;
+      var diff = len - _primaryStream.Length;
 
       _primaryStream.SetLength(len);
 
@@ -846,11 +846,11 @@ namespace Daemaged.IBNet
 
     #region Private Implementation Methods
 
-    private void FilterException(Exception exc, SlaveFailMethod method)
+    void FilterException(Exception exc, SlaveFailMethod method)
     {
       // Allow a user-provided filter function to
       // handle the errors.
-      SlaveFailAction action = SlaveFailAction.Filter;
+      var action = SlaveFailAction.Filter;
 
       if (method == SlaveFailMethod.Read)
         action = m_slaveReadFailFilter(this, method, exc);
@@ -878,7 +878,7 @@ namespace Daemaged.IBNet
       HandleSlaveException(exc, method, action);
     }
 
-    private void HandleSlaveException(
+    void HandleSlaveException(
       Exception exc, SlaveFailMethod method, SlaveFailAction action)
     {
       if (action == SlaveFailAction.Propogate) {

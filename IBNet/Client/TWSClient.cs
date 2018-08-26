@@ -60,31 +60,31 @@ namespace Daemaged.IBNet.Client
   {
     public const string DEFAULT_HOST = "127.0.0.1";
     public const int DEFAULT_PORT = 7497;
-    private const int DEFAULT_WAIT_TIMEOUT = 10000;
-    private const string IB_DATE_FORMAT = "yyyyMMdd  HH:mm:ss";
-    private const string IB_EXPIRY_DATE_FORMAT = "yyyyMMdd";
-    private const string IB_HISTORICAL_COMPLETED = "finished";
-    private readonly Dictionary<int, OrderRecord> _orderRecords = new Dictionary<int, OrderRecord>();
+    const int DEFAULT_WAIT_TIMEOUT = 10000;
+    const string IB_DATE_FORMAT = "yyyyMMdd  HH:mm:ss";
+    const string IB_EXPIRY_DATE_FORMAT = "yyyyMMdd";
+    const string IB_HISTORICAL_COMPLETED = "finished";
+    readonly Dictionary<int, OrderRecord> _orderRecords = new Dictionary<int, OrderRecord>();
 
-    private readonly IDictionary<int, IFaultable> _asyncCalls = new ConcurrentDictionary<int, IFaultable>();
+    readonly IDictionary<int, IFaultable> _asyncCalls = new ConcurrentDictionary<int, IFaultable>();
 
-    private int _clientId;
-    private bool _doWork;
+    int _clientId;
+    bool _doWork;
     protected ITWSEncoding _enc;
-    private IPEndPoint _endPoint;
+    IPEndPoint _endPoint;
     protected Dictionary<int, TWSMarketDataSnapshot> _marketDataRecords = new Dictionary<int, TWSMarketDataSnapshot>();
-    private int _nextValidId;
-    private Dictionary<string, int> _orderIds;
-    private bool _reconnect;
-    private bool _recordForPlayback;
-    private Stream _recordStream;
-    private TWSClientSettings _settings;
-    private Stream _stream;
-    private TcpClient _tcpClient;
-    private Thread _thread;
-    private string _twsTime;
-    private string NUMBER_DECIMAL_SEPARATOR;
-    private object _socketLock = new object();
+    int _nextValidId;
+    Dictionary<string, int> _orderIds;
+    bool _reconnect;
+    bool _recordForPlayback;
+    Stream _recordStream;
+    TWSClientSettings _settings;
+    Stream _stream;
+    TcpClient _tcpClient;
+    Thread _thread;
+    string _twsTime;
+    string NUMBER_DECIMAL_SEPARATOR;
+    object _socketLock = new object();
 
     #region Constructors
 
@@ -119,7 +119,7 @@ namespace Daemaged.IBNet.Client
     {
       var address = Dns.GetHostEntry(host).AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
       if (address == null)
-        throw new ArgumentException(string.Format("could not resolve host {0}", host), "host");
+        throw new ArgumentException($"could not resolve host {host}", "host");
       _endPoint = new IPEndPoint(address, port);
     }
     #endregion Constructors
@@ -192,7 +192,7 @@ namespace Daemaged.IBNet.Client
               if (clientId == -1) {
                 if (_tcpClient.Client.LocalEndPoint is IPEndPoint) {
                   var p = _tcpClient.Client.LocalEndPoint as IPEndPoint;
-                  byte[] ab = p.Address.GetAddressBytes();
+                  var ab = p.Address.GetAddressBytes();
                   clientId = ab[ab.Length - 1] << 16 | p.Port;
                 }
                 else
@@ -227,8 +227,7 @@ namespace Daemaged.IBNet.Client
           return;
         lock (_socketLock) {
           _doWork = false;
-          if (_tcpClient != null)
-            _tcpClient.Close();
+          _tcpClient?.Close();
           _thread = null;
           _tcpClient = null;
           _stream = null;
@@ -434,15 +433,12 @@ namespace Daemaged.IBNet.Client
 
     protected virtual void OnStatusChanged(TWSClientStatus status)
     {
-      if (StatusChanged == null) return;
-      StatusChanged(this, new TWSClientStatusEventArgs(this, status));
+      StatusChanged?.Invoke(this, new TWSClientStatusEventArgs(this, status));
     }
 
     protected virtual void OnException(Exception e)
     {
-      if (ExceptionOccured == null)
-        return;
-      ExceptionOccured(this, new TWSClientExceptionEventArgs(this) {
+      ExceptionOccured?.Invoke(this, new TWSClientExceptionEventArgs(this) {
         Exception = e,
       });
     }
@@ -487,28 +483,25 @@ namespace Daemaged.IBNet.Client
 
     protected void OnMarketData(TWSMarketDataSnapshot snapshot, IBTickType tickType)
     {
-      if (MarketData != null)
-        MarketData(this, new TWSMarketDataEventArgs(this)
-          {
-            Snapshot =  snapshot,
-            TickType = tickType
-          });
+      MarketData?.Invoke(this, new TWSMarketDataEventArgs(this)
+      {
+        Snapshot =  snapshot,
+        TickType = tickType
+      });
     }
 
     protected void OnTickPrice(int reqId, IBTickType tickType, double price, int size, int canAutoExecute)
     {
-      if (TickPrice != null)
-        TickPrice(this, new TWSTickPriceEventArgs(this) {
-          TickerId = reqId,
-          TickType = tickType,
-          Price = price,
-          Size = size,
-          CanAutoExecute = canAutoExecute
-        });
+      TickPrice?.Invoke(this, new TWSTickPriceEventArgs(this) {
+        TickerId       = reqId,
+        TickType       = tickType,
+        Price          = price,
+        Size           = size,
+        CanAutoExecute = canAutoExecute
+      });
 
-      TWSMarketDataSnapshot record;
-      if (!_marketDataRecords.TryGetValue(reqId, out record)) {
-        OnError(String.Format("OnTickPrice: Error request id {0}", reqId));
+      if (!_marketDataRecords.TryGetValue(reqId, out var record)) {
+        OnError($"OnTickPrice: Error request id {reqId}");
         return;
       }
       //Console.WriteLine("Client: Received tick price msg for reqid " + reqId + ", symbol " + record.Contract.Symbol +
@@ -565,21 +558,19 @@ namespace Daemaged.IBNet.Client
       if (size == 0)
         return;
 
-      if (TickSize != null)
-        TickSize(this, new TWSTickSizeEventArgs(this) {
-          TickerId = reqId,
-          TickType = tickType,
-          Size = size
-        });
+      TickSize?.Invoke(this, new TWSTickSizeEventArgs(this) {
+        TickerId = reqId,
+        TickType = tickType,
+        Size     = size
+      });
 
-      TWSMarketDataSnapshot record;
-      if (!_marketDataRecords.TryGetValue(reqId, out record)) {
-        OnError(String.Format("OnTickPrice: Error request id {0}", reqId));
+      if (!_marketDataRecords.TryGetValue(reqId, out var record)) {
+        OnError($"OnTickPrice: Error request id {reqId}");
         return;
       }
 
-      int recordSize = size;
-      bool lastDupHit = false;
+      var recordSize = size;
+      var lastDupHit = false;
 
       switch (tickType) {
         case IBTickType.BidSize:
@@ -634,7 +625,7 @@ namespace Daemaged.IBNet.Client
         OnMarketData(record, tickType);
     }
 
-    private bool FilterDups(DateTime dateTime)
+    bool FilterDups(DateTime dateTime)
     {
       return _settings.UseDupFilter &&
              (DateTime.Now.Subtract(dateTime) < _settings.DupDetectionTimeout);
@@ -643,23 +634,22 @@ namespace Daemaged.IBNet.Client
     protected void OnTickOptionComputation(int reqId, IBTickType tickType,
                                            double impliedVol, double delta, double optionPrice, double pvDividend, double gamma, double vega, double theta, double underlyingPrice)
     {
-      if (TickOptionComputation != null)
-        TickOptionComputation(this, new TWSTickOptionComputationEventArgs(this) {
-          RequestId = reqId,
-          TickType = tickType,
-          ImpliedVol = impliedVol,
-          Delta = delta,
-          OptionPrice = optionPrice,
-          PVDividend = pvDividend,
-          Gamma = gamma,
-          Vega = vega,
-          Theta = theta,
-          UnderlyingPrice = underlyingPrice,
-        });
+      TickOptionComputation?.Invoke(this, new TWSTickOptionComputationEventArgs(this) {
+        RequestId       = reqId,
+        TickType        = tickType,
+        ImpliedVol      = impliedVol,
+        Delta           = delta,
+        OptionPrice     = optionPrice,
+        PVDividend      = pvDividend,
+        Gamma           = gamma,
+        Vega            = vega,
+        Theta           = theta,
+        UnderlyingPrice = underlyingPrice,
+      });
 
       TWSMarketDataSnapshot record;
       if (!_marketDataRecords.TryGetValue(reqId, out record)) {
-        OnError(String.Format("OnTickPrice: Error request id {0}", reqId));
+        OnError($"OnTickPrice: Error request id {reqId}");
         return;
       }
 
@@ -689,73 +679,68 @@ namespace Daemaged.IBNet.Client
       OnMarketData(record, tickType);
     }
 
-    private void OnTickEFP(int reqId, IBTickType tickType, double basisPoints, string formattedBasisPoints,
+    void OnTickEFP(int reqId, IBTickType tickType, double basisPoints, string formattedBasisPoints,
                            double impliedFuturesPrice, int holdDays, string futureExpiry,
                            double dividendImpact, double dividendsToExpiry)
     {
-      if (TickEFP != null)
-        TickEFP(this, new TWSTickEFPEventArgs(this) {
-          TickerId = reqId,
-          TickType = tickType,
-          BasisPoints = basisPoints,
-          FormattedBasisPoints = formattedBasisPoints,
-          ImpliedFuturesPrice = impliedFuturesPrice,
-          HoldDays = holdDays,
-          FutureExpiry = futureExpiry,
-          DividendImpact = dividendImpact,
-          DividendsToExpiry = dividendsToExpiry
-        });
+      TickEFP?.Invoke(this, new TWSTickEFPEventArgs(this) {
+        TickerId             = reqId,
+        TickType             = tickType,
+        BasisPoints          = basisPoints,
+        FormattedBasisPoints = formattedBasisPoints,
+        ImpliedFuturesPrice  = impliedFuturesPrice,
+        HoldDays             = holdDays,
+        FutureExpiry         = futureExpiry,
+        DividendImpact       = dividendImpact,
+        DividendsToExpiry    = dividendsToExpiry
+      });
     }
 
-    private void OnTickString(int reqId, IBTickType tickType, string value)
+    void OnTickString(int reqId, IBTickType tickType, string value)
     {
-      if (TickString != null)
-        TickString(this, new TWSTickStringEventArgs(this) {
-          RequestId = reqId,
-          TickType = tickType,
-          Value = value
-        });
+      TickString?.Invoke(this, new TWSTickStringEventArgs(this) {
+        RequestId = reqId,
+        TickType  = tickType,
+        Value     = value
+      });
     }
 
-    private void OnCurrentTime(long time)
+    void OnCurrentTime(long time)
     {
-      if (CurrentTime != null)
-        CurrentTime(this, new TWSCurrentTimeEventArgs(this) { Time = DateTime.FromFileTimeUtc(time) });
+      CurrentTime?.Invoke(this, new TWSCurrentTimeEventArgs(this) { Time = DateTime.FromFileTimeUtc(time) });
     }
 
-    private void OnRealtimeBar(int reqId, long time, double open, double high, double low, double close, long volume,
+    void OnRealtimeBar(int reqId, long time, double open, double high, double low, double close, long volume,
                                double wap, int count)
     {
-      if (RealtimeBar != null)
-        RealtimeBar(this, new TWSRealtimeBarEventArgs(this) {
-          RequestId = reqId,
-          Time = time,
-          Open = open,
-          High = high,
-          Low = low,
-          Close = close,
-          Volume = volume,
-          Wap = wap,
-          Count = count
-        });
+      RealtimeBar?.Invoke(this, new TWSRealtimeBarEventArgs(this) {
+        RequestId = reqId,
+        Time      = time,
+        Open      = open,
+        High      = high,
+        Low       = low,
+        Close     = close,
+        Volume    = volume,
+        Wap       = wap,
+        Count     = count
+      });
     }
 
-    private void OnTickGeneric(int reqId, IBTickType tickType, double value)
+    void OnTickGeneric(int reqId, IBTickType tickType, double value)
     {
-      if (TickGeneric != null)
-        TickGeneric(this, new TWSTickGenericEventArgs(this) {
-          TickerId = reqId,
-          TickType = tickType,
-          Value = value,
-        });
+      TickGeneric?.Invoke(this, new TWSTickGenericEventArgs(this) {
+        TickerId = reqId,
+        TickType = tickType,
+        Value    = value,
+      });
 
       TWSMarketDataSnapshot record;
       if (!_marketDataRecords.TryGetValue(reqId, out record)) {
-        OnError(String.Format("OnTickPrice: Error request id {0}", reqId));
+        OnError($"OnTickPrice: Error request id {reqId}");
         return;
       }
 
-      bool tickRecognized = false;
+      var tickRecognized = false;
       switch (tickType) {
         case IBTickType.LastTimestamp:
           record.LastTimeStamp = DateTime.FromFileTime((long) value);
@@ -769,30 +754,28 @@ namespace Daemaged.IBNet.Client
 
     protected void OnOrderStatus(int orderId, IBOrderStatusReport status)
     {
-      if (OrderStatus != null)
-        OrderStatus(this, new TWSOrderStatusEventArgs(this) {
-          Status = status,
-        });
+      OrderStatus?.Invoke(this, new TWSOrderStatusEventArgs(this) {
+        Status = status,
+      });
 
-      if (OrderChanged != null) {
-        OrderRecord or;
-        if (_orderRecords.TryGetValue(orderId, out or)) {
-          OrderChanged(this, new TWSOrderChangedEventArgs(this, or) {
-            ChangeType = IBOrderChangeType.OrderStatus,
-            Status = status,
-          });
-        }
+      if (OrderChanged == null)
+        return;
+
+      if (_orderRecords.TryGetValue(orderId, out var or)) {
+        OrderChanged(this, new TWSOrderChangedEventArgs(this, or) {
+          ChangeType = IBOrderChangeType.OrderStatus,
+          Status     = status,
+        });
       }
     }
 
     protected void OnOpenOrder(int orderId, IBOrder order, IBContract contract, IBOrderState orderState)
     {
-      if (OpenOrder != null)
-        OpenOrder(this, new TWSOpenOrderEventArgs(this) {
-          OrderId = orderId,
-          Order = order,
-          Contract = contract
-        });
+      OpenOrder?.Invoke(this, new TWSOpenOrderEventArgs(this) {
+        OrderId  = orderId,
+        Order    = order,
+        Contract = contract
+      });
 
       // TODO: remove this callback from here!
       //if (OrderChanged != null) {
@@ -811,17 +794,15 @@ namespace Daemaged.IBNet.Client
 
     protected void OnBondContractDetails(int reqId, IBContractDetails contract)
     {
-      if (BondContractDetails != null)
-        BondContractDetails(this, new TWSContractDetailsEventArgs(this) { ContractDetails = contract });
+      BondContractDetails?.Invoke(this, new TWSContractDetailsEventArgs(this) { ContractDetails = contract });
     }
 
     protected void OnContractDetails(int reqId, IBContractDetails contract)
     {
-      if (ContractDetails != null)
-        ContractDetails(this, new TWSContractDetailsEventArgs(this) {
-          RequestId = reqId,
-          ContractDetails = contract
-        });
+      ContractDetails?.Invoke(this, new TWSContractDetailsEventArgs(this) {
+        RequestId       = reqId,
+        ContractDetails = contract
+      });
     }
 
     protected void OnManagedAccounts(string accountList) {}
@@ -830,23 +811,19 @@ namespace Daemaged.IBNet.Client
 
     protected void OnScannerData(int reqId, int rank, IBContractDetails contract, string s, string distance, string benchmark, string projection)
     {
-      if (ScannerData == null)
-        return;
-      ScannerData(this, new TWSScannerDataEventArgs(this) {
-          RequestId = reqId,
-          Contract = contract,
-          Rank = rank,
-          Distance = distance,
-          Benchmark = benchmark,
-          Projection = projection,
-        });
+      ScannerData?.Invoke(this, new TWSScannerDataEventArgs(this) {
+        RequestId  = reqId,
+        Contract   = contract,
+        Rank       = rank,
+        Distance   = distance,
+        Benchmark  = benchmark,
+        Projection = projection,
+      });
     }
 
     protected void OnScannerParameters(string xml)
     {
-      if (ScannerParameters == null)
-        return;
-      ScannerParameters(this, new TWSScannerParametersEventArgs(this) { Xml = xml });
+      ScannerParameters?.Invoke(this, new TWSScannerParametersEventArgs(this) { Xml = xml });
     }
 
     protected void OnUpdateAccountTime(string timestamp) {}
@@ -858,52 +835,49 @@ namespace Daemaged.IBNet.Client
     protected void OnUpdatePortfolio(IBContract contract, int position, double marketPrice, double marketValue,
                                      double averageCost, double unrealizedPNL, double realizedPNL, string accountName)
     {
-      if (UpdatePortfolio != null)
-        UpdatePortfolio(this, new TWSUpdatePortfolioEventArgs(this) {
-          Contract = contract,
-          Position = position,
-          MarketPrice = marketPrice,
-          MarketValue = marketValue,
-          AverageCost = averageCost,
-          UnrealizedPnL = unrealizedPNL,
-          RealizedPnL = realizedPNL,
-          AccountName = accountName,
+      UpdatePortfolio?.Invoke(this, new TWSUpdatePortfolioEventArgs(this) {
+        Contract      = contract,
+        Position      = position,
+        MarketPrice   = marketPrice,
+        MarketValue   = marketValue,
+        AverageCost   = averageCost,
+        UnrealizedPnL = unrealizedPNL,
+        RealizedPnL   = realizedPNL,
+        AccountName   = accountName,
       });
     }
 
     protected void OnExecutionDetails(int orderId, IBContract contract, IBExecutionDetails execution)
     {
-      if (ExecutionDetails != null)
-        ExecutionDetails(this, new TWSExecutionDetailsEventArgs(this) {
-          OrderId = orderId,
-          Contract = contract,
-          Execution = execution
-        });
+      ExecutionDetails?.Invoke(this, new TWSExecutionDetailsEventArgs(this) {
+        OrderId   = orderId,
+        Contract  = contract,
+        Execution = execution
+      });
 
-      if (OrderChanged != null) {
-        OrderRecord or;
-        if (_orderRecords.TryGetValue(orderId, out or)) {
-          OrderChanged(this, new TWSOrderChangedEventArgs(this, or) {
-            ChangeType = IBOrderChangeType.ExecutionDetails,
-            ReportedContract = contract,
-            ExecutionDetails =  execution,
-          });
-        }
+      if (OrderChanged == null)
+        return;
+
+      if (_orderRecords.TryGetValue(orderId, out var or)) {
+        OrderChanged(this, new TWSOrderChangedEventArgs(this, or) {
+          ChangeType       = IBOrderChangeType.ExecutionDetails,
+          ReportedContract = contract,
+          ExecutionDetails =  execution,
+        });
       }
     }
 
     protected void OnMarketDepth(int reqId, int position, IBOperation operation, IBSide side, double price, int size)
     {
-      if (MarketDepth != null)
-        MarketDepth(this, new TWSMarketDepthEventArgs(this) {
-          RequestId = reqId,
-          Position = position,
-          Operation = operation,
-          Side = side,
-          Price = price,
-          Size = size,
-          MarketMaker = String.Empty
-        });
+      MarketDepth?.Invoke(this, new TWSMarketDepthEventArgs(this) {
+        RequestId   = reqId,
+        Position    = position,
+        Operation   = operation,
+        Side        = side,
+        Price       = price,
+        Size        = size,
+        MarketMaker = String.Empty
+      });
     }
 
     protected void OnMarketDepthL2(int reqId, int position, string marketMaker, IBOperation operation, IBSide side,
@@ -924,68 +898,61 @@ namespace Daemaged.IBNet.Client
     protected void OnHistoricalData(int tickerId, TWSHistoricState state, DateTime date, double open, double high,
                                     double low, double close, int volume, int barCount, double wap, bool hasGaps)
     {
-      if (HistoricalData != null)
-        HistoricalData(this, new TWSHistoricalDataEventArgs(this) {
-          RequestId = tickerId,
-          State = state,
-          Date = date,
-          Open = open,
-          High = high,
-          Low = low,
-          Close = close,
-          Volume = volume,
-          WAP = wap,
-          HasGaps = hasGaps,
-        });
+      HistoricalData?.Invoke(this, new TWSHistoricalDataEventArgs(this) {
+        RequestId = tickerId,
+        State     = state,
+        Date      = date,
+        Open      = open,
+        High      = high,
+        Low       = low,
+        Close     = close,
+        Volume    = volume,
+        WAP       = wap,
+        HasGaps   = hasGaps,
+      });
     }
 
-    private void OnFundamentalData(int reqId, string data)
+    void OnFundamentalData(int reqId, string data)
     {
     }
 
-    private void OnContractDetailsEnd(int reqId)
+    void OnContractDetailsEnd(int reqId)
     {
-      if (ContractDetails == null)
-        return;
-
-      ContractDetails(this, new TWSContractDetailsEventArgs(this) {
-        RequestId = reqId,
+      ContractDetails?.Invoke(this, new TWSContractDetailsEventArgs(this) {
+        RequestId       = reqId,
         ContractDetails = null,
       });
     }
 
-    private void OnOpenOrderEnd()
+    void OnOpenOrderEnd()
     {
-      if (OpenOrder == null)
-        return;
-
-      OpenOrder(this, new TWSOpenOrderEventArgs(this) {
+      OpenOrder?.Invoke(this, new TWSOpenOrderEventArgs(this) {
         Contract = null,
-        Order = null,
+        Order    = null,
       });
     }
 
-    private void OnAccountDownloadEnd(string accountName)
+    void OnAccountDownloadEnd(string accountName)
     {
     }
 
-    private void OnExecutionDataEnd(int reqId)
+    void OnExecutionDataEnd(int reqId)
     {
     }
 
-    private void OnTickSnapshotEnd(int reqId)
+    void OnTickSnapshotEnd(int reqId)
     {
     }
 
-    private void OnDeltaNuetralValidation(int reqId, UnderliyingComponent underComp)
+    void OnDeltaNuetralValidation(int reqId, UnderliyingComponent underComp)
     {
     }
 
-    private void OnCommissionReport(CommissionReport commissionReport)
+    void OnCommissionReport(CommissionReport commissionReport)
     {
     }
 
-    private void OnMarketDataType(int reqId, int marketDataType)
+    void OnMarketDataType(int reqId, int marketDataType)
     {
     }
 
@@ -1011,7 +978,7 @@ namespace Daemaged.IBNet.Client
 
     #region Raw Server Mesage Processing
 
-    private void ProcessTickPrice()
+    void ProcessTickPrice()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
@@ -1036,7 +1003,7 @@ namespace Daemaged.IBNet.Client
       // to support the combined tick price + size messages
     }
 
-    private void ProcessTickSize()
+    void ProcessTickSize()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
@@ -1054,7 +1021,7 @@ namespace Daemaged.IBNet.Client
       OnTickSize(reqId, tickType, size);
     }
 
-    private void ProcessOrderStatus()
+    void ProcessOrderStatus()
     {
       var version = _enc.DecodeInt();
       var orderId = _enc.DecodeInt();
@@ -1085,7 +1052,7 @@ namespace Daemaged.IBNet.Client
       OnOrderStatus(orderId, newStatus);
     }
 
-    private void ProcessTickString()
+    void ProcessTickString()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
@@ -1105,7 +1072,7 @@ namespace Daemaged.IBNet.Client
       OnTickString(reqId, tickType, value);
     }
 
-    private void ProcessTickGeneric()
+    void ProcessTickGeneric()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
@@ -1124,7 +1091,7 @@ namespace Daemaged.IBNet.Client
       OnTickGeneric(reqId, tickType, value);
     }
 
-    private void ProcessErrorMessage()
+    void ProcessErrorMessage()
     {
       var version = _enc.DecodeInt();
       if (version < 2) {
@@ -1150,14 +1117,13 @@ namespace Daemaged.IBNet.Client
           else
             OnError(id, twsError, String.Empty);
         } catch (Exception e) {
-          if (completion != null)
-            completion.TrySetException(e);
+          completion?.TrySetException(e);
           throw;
         }
       }
     }
 
-    private void ProcessOpenOrder()
+    void ProcessOpenOrder()
     {
       // read version
       var version = _enc.DecodeInt();
@@ -1428,7 +1394,7 @@ namespace Daemaged.IBNet.Client
       OnOpenOrder(order.OrderId, order, contract, orderState);
     }
 
-    private void ProcessAccountValue()
+    void ProcessAccountValue()
     {
       var version = _enc.DecodeInt();
       var key = _enc.DecodeString();
@@ -1438,7 +1404,7 @@ namespace Daemaged.IBNet.Client
       OnUpdateAccountValue(key, val, cur, accountName);
     }
 
-    private void ProcessPortfolioValue()
+    void ProcessPortfolioValue()
     {
       var version = _enc.DecodeInt();
       var contractDetails = new IBContract {
@@ -1477,20 +1443,20 @@ namespace Daemaged.IBNet.Client
                         accountName);
     }
 
-    private void ProcessAcctUpdateTime()
+    void ProcessAcctUpdateTime()
     {
       var version = _enc.DecodeInt();
       var timeStamp = _enc.DecodeString();
       OnUpdateAccountTime(timeStamp);
     }
 
-    private void ProcessNextValidId()
+    void ProcessNextValidId()
     {
       var version = _enc.DecodeInt();
       _nextValidId = _enc.DecodeInt();
     }
 
-    private void ProcessContractData()
+    void ProcessContractData()
     {
       ProgressiveTaskCompletionSource<List<IBContractDetails>> completion = null;
 
@@ -1558,13 +1524,12 @@ namespace Daemaged.IBNet.Client
         else
           OnContractDetails(reqId, contractDetails);
       } catch (Exception e) {
-        if (completion != null)
-          completion.SetException(e);
+        completion?.SetException(e);
         throw;
       }
     }
 
-    private static DateTime? DecodeIBExpiry(ITWSEncoding enc)
+    static DateTime? DecodeIBExpiry(ITWSEncoding enc)
     {
       var v = enc.DecodeString();
       return String.IsNullOrEmpty(v)
@@ -1572,7 +1537,7 @@ namespace Daemaged.IBNet.Client
                : DateTime.ParseExact(v, IB_EXPIRY_DATE_FORMAT, CultureInfo.InvariantCulture);
     }
 
-    private void ProcessExecutionData()
+    void ProcessExecutionData()
     {
       var version = _enc.DecodeInt();
       var reqId = -1;
@@ -1617,7 +1582,7 @@ namespace Daemaged.IBNet.Client
       OnExecutionDetails(orderId, contract, execution);
     }
 
-    private void ProcessMarketDepth()
+    void ProcessMarketDepth()
     {
       var version = _enc.DecodeInt();
       var id = _enc.DecodeInt();
@@ -1629,7 +1594,7 @@ namespace Daemaged.IBNet.Client
       OnMarketDepth(id, position, operation, side, price, size);
     }
 
-    private void ProcessMarketDepthL2()
+    void ProcessMarketDepthL2()
     {
       var version = _enc.DecodeInt();
       var id = _enc.DecodeInt();
@@ -1642,7 +1607,7 @@ namespace Daemaged.IBNet.Client
       OnMarketDepthL2(id, position, marketMaker, operation, side, price, size);
     }
 
-    private void ProcessNewsBulletins()
+    void ProcessNewsBulletins()
     {
       var version = _enc.DecodeInt();
       var newsMsgId = _enc.DecodeInt();
@@ -1652,7 +1617,7 @@ namespace Daemaged.IBNet.Client
       OnUpdateNewsBulletin(newsMsgId, newsMsgType, newsMessage, originatingExch);
     }
 
-    private void ProcessManagedAccts()
+    void ProcessManagedAccts()
     {
       var version = _enc.DecodeInt();
       var accountsList = _enc.DecodeString();
@@ -1660,7 +1625,7 @@ namespace Daemaged.IBNet.Client
       OnManagedAccounts(accountsList);
     }
 
-    private void ProcessReceiveFA()
+    void ProcessReceiveFA()
     {
       var version = _enc.DecodeInt();
       var faDataType = _enc.DecodeInt();
@@ -1669,7 +1634,7 @@ namespace Daemaged.IBNet.Client
       OnReceiveFA(faDataType, xml);
     }
 
-    private void ProcessHistoricalData()
+    void ProcessHistoricalData()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
@@ -1699,7 +1664,7 @@ namespace Daemaged.IBNet.Client
       OnHistoricalData(reqId, TWSHistoricState.Finished, endDateTime, -1, -1, -1, -1, -1, -1, -1, false);
     }
 
-    private void ProcessBondContractData()
+    void ProcessBondContractData()
     {
       var version = _enc.DecodeInt();
       var reqId = version >= 3 ? _enc.DecodeInt() : -1;
@@ -1758,14 +1723,14 @@ namespace Daemaged.IBNet.Client
       OnBondContractDetails(reqId, contract);
     }
 
-    private void ProcessScannerParameters()
+    void ProcessScannerParameters()
     {
       var version = _enc.DecodeInt();
       var xml = _enc.DecodeString();
       OnScannerParameters(xml);
     }
 
-    private void ProcessScannerData()
+    void ProcessScannerData()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
@@ -1799,7 +1764,7 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-    private void ProcessTickOptionComputation()
+    void ProcessTickOptionComputation()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
@@ -1857,7 +1822,7 @@ namespace Daemaged.IBNet.Client
       OnTickOptionComputation(reqId, tickType, impliedVol, delta, optPrice, pvDividend, gamma, vega, theta, undPrice);
     }
 
-    private void ProcessTickEFP()
+    void ProcessTickEFP()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
@@ -1873,14 +1838,14 @@ namespace Daemaged.IBNet.Client
                 impliedFuturesPrice, holdDays, futureExpiry, dividendImpact, dividendsToExpiry);
     }
 
-    private void ProcessCurrentTime()
+    void ProcessCurrentTime()
     {
       var version = _enc.DecodeInt();
       var time = _enc.DecodeLong();
       OnCurrentTime(time);
     }
 
-    private void ProcessRealTimeBars()
+    void ProcessRealTimeBars()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
@@ -1895,7 +1860,7 @@ namespace Daemaged.IBNet.Client
       OnRealtimeBar(reqId, time, open, high, low, close, volume, wap, count);
     }
 
-    private void ProcessFundamentalData()
+    void ProcessFundamentalData()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
@@ -1903,7 +1868,7 @@ namespace Daemaged.IBNet.Client
       OnFundamentalData(reqId, data);
     }
 
-    private void ProcessContractDataEnd()
+    void ProcessContractDataEnd()
     {
       ProgressiveTaskCompletionSource<List<IBContractDetails>> completion = null;
 
@@ -1921,33 +1886,32 @@ namespace Daemaged.IBNet.Client
         OnContractDetailsEnd(reqId);
 
       } catch (Exception e) {
-        if (completion != null)
-          completion.SetException(e);
+        completion?.SetException(e);
         throw;
       }
     }
 
-    private void ProcessOpenOrderEnd()
+    void ProcessOpenOrderEnd()
     {
       var version = _enc.DecodeInt();
       OnOpenOrderEnd();
     }
 
-    private void ProcessAccountDownloadEnd()
+    void ProcessAccountDownloadEnd()
     {
       var version = _enc.DecodeInt();
       var accountName = _enc.DecodeString();
       OnAccountDownloadEnd(accountName);
     }
 
-    private void ProcessExecutionDataEnd()
+    void ProcessExecutionDataEnd()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
       OnExecutionDataEnd(reqId);
     }
 
-    private void ProcessDeltaNeutralValidation()
+    void ProcessDeltaNeutralValidation()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
@@ -1961,7 +1925,7 @@ namespace Daemaged.IBNet.Client
       OnDeltaNuetralValidation(reqId, underComp);
     }
 
-    private void ProcessTickSnapshotEnd()
+    void ProcessTickSnapshotEnd()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
@@ -1969,7 +1933,7 @@ namespace Daemaged.IBNet.Client
       OnTickSnapshotEnd(reqId);
     }
 
-    private void ProcessCommissionReport()
+    void ProcessCommissionReport()
     {
       var version = _enc.DecodeInt();
 
@@ -1985,7 +1949,7 @@ namespace Daemaged.IBNet.Client
       OnCommissionReport(commissionReport);
     }
 
-    private void ProcessMarketDataType()
+    void ProcessMarketDataType()
     {
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
@@ -1994,7 +1958,7 @@ namespace Daemaged.IBNet.Client
       OnMarketDataType(reqId, marketDataType);
     }
 
-    private void ProcessMessages()
+    void ProcessMessages()
     {
       try {
         while (_doWork) {
@@ -2374,7 +2338,7 @@ namespace Daemaged.IBNet.Client
       }
     }
 
-    private void CheckServerCompatability(IBContract contract, IBOrder order)
+    void CheckServerCompatability(IBContract contract, IBOrder order)
     {
       //Scale Orders Minimum Version is 35
       if (ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_SCALE_ORDERS)
@@ -2600,7 +2564,7 @@ namespace Daemaged.IBNet.Client
       _asyncCalls.Add(id, completion);
       RequestMarketData(contract, tickList, snapshot, id);
 
-      int timeout = 1000;
+      var timeout = 1000;
       if (await Task.WhenAny(completion.Task, Task.Delay(timeout)) == completion.Task) {
         if (completion.Task.IsFaulted)
           throw completion.Task.Exception;
@@ -3409,13 +3373,13 @@ namespace Daemaged.IBNet.Client
 
     #region Utilities
 
-    private Stream SetupDefaultRecordStream()
+    Stream SetupDefaultRecordStream()
     {
       var count = 1;
       Stream s = null;
       while (true) {
         try {
-          string name = "ib-log-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + count + ".log";
+          var name = "ib-log-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + count + ".log";
           s = File.Open(name, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read);
           break;
         }
@@ -3428,7 +3392,7 @@ namespace Daemaged.IBNet.Client
 
     #endregion Utilities
 
-    private int NextValidId
+    int NextValidId
     {
       get { return Interlocked.Increment(ref _nextValidId); }
     }

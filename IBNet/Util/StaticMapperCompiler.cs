@@ -8,19 +8,19 @@ namespace IBNet.Util
 {
   public static class StaticMapperCompiler
   {
-    private static bool IsNativeInt(Type t)
+    static bool IsNativeInt(Type t)
     {
       return (t == typeof (IntPtr) || t == typeof (UIntPtr));
     }
 
-    private enum KeyType
+    enum KeyType
     {
       Integer,
       String,
       Unsuppoeted
     }
 
-    private static KeyType GetKeyType(Type keyType)
+    static KeyType GetKeyType(Type keyType)
     {
       var typeCode = Type.GetTypeCode(keyType);
       if (IsNativeInt(keyType))
@@ -71,7 +71,7 @@ namespace IBNet.Util
       }
     }
 
-    private static Func<TK, TV> CompileIntegerMapper<TK, TV>(IEnumerable<KeyValuePair<TK, TV>> data, bool throwWhenNotFound = true, TV notFoundValue = default(TV))
+    static Func<TK, TV> CompileIntegerMapper<TK, TV>(IEnumerable<KeyValuePair<TK, TV>> data, bool throwWhenNotFound = true, TV notFoundValue = default(TV))
     {
       var handleIntPtr = IsNativeInt(typeof (TK));
 
@@ -129,20 +129,21 @@ namespace IBNet.Util
       return Expression.Lambda<Func<TK, TV>>(sw, new[] { param }).Compile();
     }
 
-    private static Expression GenerateKeyNotFoundException(ParameterExpression param)
+    static Expression GenerateKeyNotFoundException(ParameterExpression param)
     {
       return Expression.New(typeof(KeyNotFoundException).GetConstructor(new[] { typeof(String)}),
             Expression.Call(typeof(String).GetMethod("Format", new[] { typeof(String), typeof(object) }), Expression.Constant("The key was not found: {0}"), Expression.Convert(param, typeof(object))));
     }
 
     // ReSharper disable StaticFieldInGenericType
-    private static readonly MethodInfo _stringEquals = typeof(string).GetMethod("Equals", new[] { typeof(string), typeof(string) });
-    private static readonly MethodInfo _stringIndex = typeof(string).GetMethod("get_Chars");
-    private static readonly MethodInfo _stringLength = typeof(string).GetMethod("get_Length");
+    static readonly MethodInfo _stringEquals = typeof(string).GetMethod("Equals", new[] { typeof(string), typeof(string) });
+    static readonly MethodInfo _stringIndex = typeof(string).GetMethod("get_Chars");
+
+    static readonly MethodInfo _stringLength = typeof(string).GetMethod("get_Length");
     // ReSharper restore StaticFieldInGenericType
 
 
-    private static Func<TK, TV> CompileStringMapper<TK, TV>(IEnumerable<KeyValuePair<string, TV>> dict, bool throwWhenNotFound = true, TV notFoundValue = default(TV))
+    static Func<TK, TV> CompileStringMapper<TK, TV>(IEnumerable<KeyValuePair<string, TV>> dict, bool throwWhenNotFound = true, TV notFoundValue = default(TV))
     {
       var cases = dict.Select(pair => new SwitchCase<TV>(pair.Key, pair.Value)).ToList();
       var keyParameter = Expression.Parameter(typeof(string), "key");
@@ -159,7 +160,7 @@ namespace IBNet.Util
     }
 
 
-    private static Expression SwitchOnLength<T>(ParameterExpression keyParameter, Expression defaultExpr, SwitchCase<T>[] switchCases, int lower, int upper)
+    static Expression SwitchOnLength<T>(ParameterExpression keyParameter, Expression defaultExpr, SwitchCase<T>[] switchCases, int lower, int upper)
     {
       if (switchCases[lower].Key.Length == switchCases[upper].Key.Length)
         return SwitchOnChar(keyParameter, defaultExpr, switchCases.Skip(lower).Take(upper - lower + 1).ToArray(), 0, 0, upper - lower);
@@ -174,7 +175,7 @@ namespace IBNet.Util
         SwitchOnLength(keyParameter, defaultExpr, switchCases, middle + 1, upper));
     }
 
-    private static Expression SwitchOnChar<T>(ParameterExpression keyParameter, Expression defaultExpr, SwitchCase<T>[] switchCases, int index, int lower, int upper)
+    static Expression SwitchOnChar<T>(ParameterExpression keyParameter, Expression defaultExpr, SwitchCase<T>[] switchCases, int index, int lower, int upper)
     {
       if (lower == upper)
       {
@@ -220,12 +221,12 @@ namespace IBNet.Util
         falseBranch);
     }
 
-    private static int MidPoint(int lower, int upper)
+    static int MidPoint(int lower, int upper)
     {
       return ((upper - lower + 1) / 2) + lower;
     }
 
-    private static int GetIndexOfFirstDifferentCaseFromUp<T, K>(SwitchCase<T>[] cases, int lower, int middle, int upper,
+    static int GetIndexOfFirstDifferentCaseFromUp<T, K>(SwitchCase<T>[] cases, int lower, int middle, int upper,
                                                              Func<SwitchCase<T>, K> selector)
     {
       var firstValue = selector(cases[middle]);
@@ -240,7 +241,7 @@ namespace IBNet.Util
 
     #region Nested type: SwitchCase
 
-    private struct SwitchCase<T>
+    struct SwitchCase<T>
     {
       public readonly string Key;
       public readonly T Value;

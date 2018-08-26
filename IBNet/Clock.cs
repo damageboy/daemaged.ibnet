@@ -52,8 +52,8 @@ namespace Daemaged.IBNet
 
   internal class Clock
   {
-    private readonly ClockMode _mode;
-    private DateTime _lastPlaybackEventTime;
+    readonly ClockMode _mode;
+    DateTime _lastPlaybackEventTime;
 
     public Clock(ClockMode mode)
     {

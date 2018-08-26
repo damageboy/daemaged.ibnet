@@ -54,9 +54,9 @@ namespace Daemaged.IBNet
   /// </summary>
   internal class TWSPlaybackRecorderEncoding : TWSEncoding
   {
-    private readonly Stream _recordStream;
-    private readonly BinaryWriter _recordWriter;
-    private long _lastEmptySize;
+    readonly Stream _recordStream;
+    readonly BinaryWriter _recordWriter;
+    long _lastEmptySize;
 
     /// <summary>
     /// Construct a recording encoder/decoder
@@ -95,7 +95,7 @@ namespace Daemaged.IBNet
       base.Encode(id);
     }
 
-    private void HandlePlaybackMetaData(IBPlaybackMessage msg)
+    void HandlePlaybackMetaData(IBPlaybackMessage msg)
     {
       // Now that we know the previous message size, seek to the size position
       // in the stream and write the position into the stream, and seek back to
@@ -120,10 +120,10 @@ namespace Daemaged.IBNet
 
   internal class TWSPlaybackPlayerEncoding : TWSEncoding
   {
-    private readonly Stream _recordedStream;
-    private Mutex _clientMutex;
-    private BinaryReader _recordReader;
-    private Mutex _serverMutex;
+    readonly Stream _recordedStream;
+    Mutex _clientMutex;
+    BinaryReader _recordReader;
+    Mutex _serverMutex;
 
     /// <summary>
     /// Construct a playback encoder/decoder

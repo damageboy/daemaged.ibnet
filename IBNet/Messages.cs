@@ -47,7 +47,7 @@ namespace Daemaged.IBNet
 
   internal class IBBarSizeMap : Dictionary<int, int>
   {
-    private static readonly IBBarSizeMap _instance;
+    static readonly IBBarSizeMap _instance;
 
     static IBBarSizeMap()
     {

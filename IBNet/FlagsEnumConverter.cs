@@ -63,7 +63,7 @@ namespace Daemaged.IBNet
       /// <summary>
       /// Stores the context which the enumeration field descriptor was created in.
       /// </summary>
-      private readonly ITypeDescriptorContext fContext;
+      readonly ITypeDescriptorContext fContext;
 
       #endregion
 
@@ -115,7 +115,7 @@ namespace Daemaged.IBNet
         else
           myNewValue = ((int) component) & ~(int) Enum.Parse(ComponentType, Name);
 
-        FieldInfo myField = component.GetType().GetField("value__", BindingFlags.Instance | BindingFlags.Public);
+        var myField = component.GetType().GetField("value__", BindingFlags.Instance | BindingFlags.Public);
         myField.SetValue(component, myNewValue);
         fContext.PropertyDescriptor.SetValue(fContext.Instance, component);
       }
@@ -147,13 +147,13 @@ namespace Daemaged.IBNet
       }
 
       /// <summary>
-      /// Retrieves the enumerations field’s default value.
+      /// Retrieves the enumerations fieldï¿½s default value.
       /// </summary>
-      private bool GetDefaultValue()
+      bool GetDefaultValue()
       {
         object myDefaultValue = null;
-        string myPropertyName = fContext.PropertyDescriptor.Name;
-        Type myComponentType = fContext.PropertyDescriptor.ComponentType;
+        var myPropertyName = fContext.PropertyDescriptor.Name;
+        var myComponentType = fContext.PropertyDescriptor.ComponentType;
 
         // Get DefaultValueAttribute
         var myDefaultValueAttribute = (DefaultValueAttribute) Attribute.GetCustomAttribute(
@@ -203,12 +203,12 @@ namespace Daemaged.IBNet
                                                                Attribute[] attributes)
     {
       if (context != null) {
-        Type myType = value.GetType();
-        string[] myNames = Enum.GetNames(myType);
-        Array myValues = Enum.GetValues(myType);
+        var myType = value.GetType();
+        var myNames = Enum.GetNames(myType);
+        var myValues = Enum.GetValues(myType);
         if (myNames != null) {
           var myCollection = new PropertyDescriptorCollection(null);
-          for (int i = 0; i < myNames.Length; i++) {
+          for (var i = 0; i < myNames.Length; i++) {
             if ((int) myValues.GetValue(i) != 0 && myNames[i] != "All")
               myCollection.Add(new EnumFieldDescriptor(myType, myNames[i], context));
           }

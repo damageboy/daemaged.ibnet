@@ -46,11 +46,11 @@ namespace Daemaged.IBNet.Client
 {
   public class TWSMarketDataSnapshot : ICloneable
   {
-    private int _askSize;
-    private int _bidSize;
-    private int _lastSize;
-    private int _volume;
-    private int _volumeDiff;
+    int _askSize;
+    int _bidSize;
+    int _lastSize;
+    int _volume;
+    int _volumeDiff;
 
     public TWSMarketDataSnapshot(IBContract contract, int reqId)
     {

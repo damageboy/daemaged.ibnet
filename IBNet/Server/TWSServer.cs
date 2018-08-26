@@ -52,14 +52,14 @@ namespace Daemaged.IBNet.Server
   {
     //public event EventHandler<TWSClientStatusEventArgs> StatusChanged;
 
-    private const int DEFAULT_BUFFER_SIZE = 4096;
+    const int DEFAULT_BUFFER_SIZE = 4096;
     public const int DEFAULT_PORT = 7496;
     public const int PROTOCOL_VERSION = 10;
-    private const int SERVER_VERSION = 34;
-    private readonly List<TWSServerClientHandler> _clients;
-    private int _clientCount;
-    private AsyncCallback _connectCallback;
-    private TcpListener _listener;
+    const int SERVER_VERSION = 34;
+    readonly List<TWSServerClientHandler> _clients;
+    int _clientCount;
+    AsyncCallback _connectCallback;
+    TcpListener _listener;
 
     public TWSServer()
     {
@@ -98,7 +98,7 @@ namespace Daemaged.IBNet.Server
 
     public virtual void Stop()
     {
-      foreach (TWSServerClientHandler c in _clients)
+      foreach (var c in _clients)
         c.Disconnect();
 
       _listener.Stop();
@@ -106,24 +106,22 @@ namespace Daemaged.IBNet.Server
 
     protected internal void OnError(TWSError error)
     {
-      if (Error != null)
-        Error(this, new TWSServerErrorEventArgs(this, error));
+      Error?.Invoke(this, new TWSServerErrorEventArgs(this, error));
     }
 
     #region Client-generated events (i.e. client subscription requests)
 
     public virtual void OnTcpClientConnect(IAsyncResult asyn)
     {
-      if (TcpClientConnected != null)
-        TcpClientConnected(this, new TWSTcpClientConnectedEventArgs(this, null));
+      TcpClientConnected?.Invoke(this, new TWSTcpClientConnectedEventArgs(this, null));
       try {
         // Here we complete/end the BeginAccept() asynchronous call
         // by calling EndAccept() - which returns the reference to
         // a new Socket object
-        TcpClient tc = _listener.EndAcceptTcpClient(asyn);
+        var tc = _listener.EndAcceptTcpClient(asyn);
         _clientCount++;
         //var s = new BufferedReadStream(tc.GetStream(), DEFAULT_BUFFER_SIZE);
-        NetworkStream s = tc.GetStream();
+        var s = tc.GetStream();
 
         var connection = new TWSServerClientHandler(this, s);
 
@@ -149,35 +147,30 @@ namespace Daemaged.IBNet.Server
 
     public virtual void OnMarketDataRequest(TWSServerClientHandler client, int reqId, IBContract contract)
     {
-      if (MarketDataRequest != null)
-        MarketDataRequest(this, new TWSMarketDataRequestEventArgs(client, reqId, contract));
+      MarketDataRequest?.Invoke(this, new TWSMarketDataRequestEventArgs(client, reqId, contract));
     }
 
     public virtual void OnMarketDataCancel(TWSServerClientHandler client, int reqId, IBContract contract)
     {
-      if (MarketDataCancel != null)
-        MarketDataCancel(this, new TWSMarketDataCancelEventArgs(client, reqId, contract));
+      MarketDataCancel?.Invoke(this, new TWSMarketDataCancelEventArgs(client, reqId, contract));
     }
 
     public virtual void OnMarketDepthCancel(TWSServerClientHandler client, int reqId, IBContract contract)
     {
-      if (MarketDataCancel != null)
-        MarketDataCancel(this, new TWSMarketDataCancelEventArgs(client, reqId, contract));
+      MarketDataCancel?.Invoke(this, new TWSMarketDataCancelEventArgs(client, reqId, contract));
     }
 
     public virtual void OnContractDetailsRequest(TWSServerClientHandler client, IBContract contract) {}
 
     public virtual void OnLogin(TWSServerClientHandler clientState, TWSClientInfo clientInfo, TWSClientId clientId)
     {
-      if (Login != null)
-        Login(this, new TWSServerLoginEventArgs(clientState));
+      Login?.Invoke(this, new TWSServerLoginEventArgs(clientState));
     }
 
     public virtual void OnMarketDepthRequest(TWSServerClientHandler clientState, int reqId, IBContract contract,
                                              int numRows)
     {
-      if (MarketDepthRequest != null)
-        MarketDepthRequest(this, new TWSMarketDepthRequestEventArgs(clientState, reqId, contract, numRows));
+      MarketDepthRequest?.Invoke(this, new TWSMarketDepthRequestEventArgs(clientState, reqId, contract, numRows));
     }
 
     #endregion

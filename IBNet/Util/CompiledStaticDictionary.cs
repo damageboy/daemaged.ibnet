@@ -9,10 +9,10 @@ namespace IBNet.Util
 {
   public class CompiledStaticDictionary<TK, TV> : IDictionary<TK, TV>
   {
-    private Func<TK, TV> _mapper;
-    private Func<TK, bool> _existenceTester;
-    private Dictionary<TK, TV> _dict;
-    private bool _inBatch;
+    Func<TK, TV> _mapper;
+    Func<TK, bool> _existenceTester;
+    Dictionary<TK, TV> _dict;
+    bool _inBatch;
 
     public CompiledStaticDictionary(IDictionary<TK, TV> dict=null)
     {
@@ -20,7 +20,7 @@ namespace IBNet.Util
       RegenerateCompiledFunctions();
     }
 
-    private TV RegenerateCompiledFunctions()
+    TV RegenerateCompiledFunctions()
     {
       Func<TK, TV> newMapper;
       Func<TK, bool> newexistenceTester;
@@ -169,11 +169,11 @@ namespace IBNet.Util
 
   public class CompiledStaticDictionary<TK, TK2, TV> : IDictionary<TK, TV>
   {
-    private Func<TK2, TV> _mapper;
-    private Func<TK2, bool> _existenceTester;
-    private Dictionary<TK, TV> _dict;
-    private Func<TK, TK2> _keyMapper;
-    private bool _inBatch;
+    Func<TK2, TV> _mapper;
+    Func<TK2, bool> _existenceTester;
+    Dictionary<TK, TV> _dict;
+    Func<TK, TK2> _keyMapper;
+    bool _inBatch;
 
     public CompiledStaticDictionary(Func<TK, TK2> keyMapper, IDictionary<TK, TV> dict=null)
     {
@@ -184,7 +184,7 @@ namespace IBNet.Util
       RegenerateCompiledFunctions();
     }
 
-    private TV RegenerateCompiledFunctions()
+    TV RegenerateCompiledFunctions()
     {
       Func<TK2, TV> newMapper;
       Func<TK2, bool> newexistenceTester;

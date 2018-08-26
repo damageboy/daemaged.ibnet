@@ -6,25 +6,25 @@
 //  by Dan Shechter
 ////////////////////////////////////////////////////////////////////////////////////////
 //  License: MPL 1.1/GPL 2.0/LGPL 2.1
-//  
-//  The contents of this file are subject to the Mozilla Public License Version 
-//  1.1 (the "License"); you may not use this file except in compliance with 
-//  the License. You may obtain a copy of the License at 
+//
+//  The contents of this file are subject to the Mozilla Public License Version
+//  1.1 (the "License"); you may not use this file except in compliance with
+//  the License. You may obtain a copy of the License at
 //  http://www.mozilla.org/MPL/
-//  
+//
 //  Software distributed under the License is distributed on an "AS IS" basis,
 //  WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 //  for the specific language governing rights and limitations under the
 //  License.
-//  
+//
 //  The Original Code is any part of this file that is not marked as a contribution.
-//  
+//
 //  The Initial Developer of the Original Code is Dan Shecter.
 //  Portions created by the Initial Developer are Copyright (C) 2007
 //  the Initial Developer. All Rights Reserved.
-//  
+//
 //  Contributor(s): None.
-//  
+//
 //  Alternatively, the contents of this file may be used under the terms of
 //  either the GNU General Public License Version 2 or later (the "GPL"), or
 //  the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
@@ -57,15 +57,15 @@ namespace Daemaged.IBNet.Server
 
   public class TWSServerClientHandler
   {
-    private const string IB_DATE_FORMAT = "yyyyMMdd  HH:mm:ss";
-    private const string IB_HISTORICAL_COMPLETED = "finished";
-    private readonly Stream _stream;
+    const string IB_DATE_FORMAT = "yyyyMMdd  HH:mm:ss";
+    const string IB_HISTORICAL_COMPLETED = "finished";
+    readonly Stream _stream;
 
-    private byte[] _buffer;
+    byte[] _buffer;
     protected ITWSEncoding _enc;
-    private Dictionary<int, IBContract> _marketDataSubscriptions;
-    private Dictionary<int, IBContract> _marketDepthSubscriptions;
-    private bool _stillConnected;
+    Dictionary<int, IBContract> _marketDataSubscriptions;
+    Dictionary<int, IBContract> _marketDepthSubscriptions;
+    bool _stillConnected;
 
     public TWSServerClientHandler(Stream stream)
     {
@@ -92,7 +92,7 @@ namespace Daemaged.IBNet.Server
 
     public virtual TWSClientInfo ClientInfo { get; protected set; }
     public virtual TWSClientId ClientId { get; protected set; }
-    private Thread Thread { get; set; }
+    Thread Thread { get; set; }
     public event EventHandler<TWSServerEventArgs> Login;
     public event EventHandler<TWSServerErrorEventArgs> Error;
     public event EventHandler<TWSMarketDataRequestEventArgs> MarketDataRequest;
@@ -100,7 +100,7 @@ namespace Daemaged.IBNet.Server
     public event EventHandler<TWSMarketDataCancelEventArgs> MarketDataCancel;
     public event EventHandler<TWSMarketDataCancelEventArgs> MarketDepthCancel;
 
-    private void Init()
+    void Init()
     {
       Status = TWSClientStatus.Unknown;
       // Create buffered read stream to minimize the # of recv system calls
@@ -209,30 +209,30 @@ namespace Daemaged.IBNet.Server
 
     #region Client-generated events (i.e. client subscription requests)
 
-    private void ProcessPlaceOrder() {}
+    void ProcessPlaceOrder() {}
 
-    private void ProcessCancelOrder() {}
+    void ProcessCancelOrder() {}
 
-    private void ProcessExecutionsRequest() {}
+    void ProcessExecutionsRequest() {}
 
-    private void ProcessHistoricalDataCancel() {}
+    void ProcessHistoricalDataCancel() {}
 
-    private void ProcessHistoricalDataRequest() {}
+    void ProcessHistoricalDataRequest() {}
 
-    private void ProcessAllOpenOrdersRequest() {}
+    void ProcessAllOpenOrdersRequest() {}
 
-    private void ProcessAutoOpenOrdersRequest() {}
+    void ProcessAutoOpenOrdersRequest() {}
 
-    private void ProcessRealTimeBarsCancel() {}
+    void ProcessRealTimeBarsCancel() {}
 
-    private void ProcessRealTimeBarsRequest() {}
+    void ProcessRealTimeBarsRequest() {}
 
-    private void ProcessMarketDepthCancel()
+    void ProcessMarketDepthCancel()
     {
-      int reqId = -1;
+      var reqId = -1;
 
       try {
-        int reqVersion = _enc.DecodeInt();
+        var reqVersion = _enc.DecodeInt();
         reqId = _enc.DecodeInt();
         OnMarketDepthCancel(reqId);
       }
@@ -243,12 +243,12 @@ namespace Daemaged.IBNet.Server
       }
     }
 
-    private void ProcessMarketDepthRequest()
+    void ProcessMarketDepthRequest()
     {
       try {
-        int reqVersion = _enc.DecodeInt();
-        int reqId = _enc.DecodeInt();
-        int numRows = 0;
+        var reqVersion = _enc.DecodeInt();
+        var reqId = _enc.DecodeInt();
+        var numRows = 0;
 
         var contract = new IBContract {
                                         Symbol = _enc.DecodeString(),
@@ -274,12 +274,12 @@ namespace Daemaged.IBNet.Server
       }
     }
 
-    private void ProcessMarketDataCancel()
+    void ProcessMarketDataCancel()
     {
-      int reqId = -1;
+      var reqId = -1;
 
       try {
-        int reqVersion = _enc.DecodeInt();
+        var reqVersion = _enc.DecodeInt();
         reqId = _enc.DecodeInt();
         OnMarketDataCancel(reqId);
       }
@@ -290,11 +290,11 @@ namespace Daemaged.IBNet.Server
       }
     }
 
-    private void ProcessMarketDataRequest()
+    void ProcessMarketDataRequest()
     {
-      int reqId = -1;
+      var reqId = -1;
       try {
-        int reqVersion = _enc.DecodeInt();
+        var reqVersion = _enc.DecodeInt();
         reqId = _enc.DecodeInt();
         var contract = new IBContract {
                                         Symbol = _enc.DecodeString(),
@@ -312,8 +312,8 @@ namespace Daemaged.IBNet.Server
         if (ServerInfo.Version >= 2)
           contract.LocalSymbol = _enc.DecodeString();
         if (ServerInfo.Version >= 8 && (contract.SecurityType == IBSecurityType.Bag)) {
-          int comboLegCount = _enc.DecodeInt();
-          for (int i = 0; i < comboLegCount; i++) {
+          var comboLegCount = _enc.DecodeInt();
+          for (var i = 0; i < comboLegCount; i++) {
             var leg = new IBComboLeg {
                                        ContractId = _enc.DecodeInt(),
                                        Ratio = _enc.DecodeInt(),
@@ -325,10 +325,10 @@ namespace Daemaged.IBNet.Server
         }
 
         if (ServerInfo.Version >= 31) {
-          string genericTickList = _enc.DecodeString();
+          var genericTickList = _enc.DecodeString();
           if (!string.IsNullOrEmpty(genericTickList)) {
             var list = new List<IBGenericTickType>();
-            foreach (string s in genericTickList.Split(','))
+            foreach (var s in genericTickList.Split(','))
               list.Add((IBGenericTickType) Enum.Parse(typeof (IBGenericTickType), s));
           }
         }
@@ -342,13 +342,13 @@ namespace Daemaged.IBNet.Server
       }
     }
 
-    private void ProcessCurrentTimeRequest() {}
+    void ProcessCurrentTimeRequest() {}
 
-    private void ProcessContractDataRequest()
+    void ProcessContractDataRequest()
     {
       try {
         // send req mkt data msg
-        int reqVersion = _enc.DecodeInt();
+        var reqVersion = _enc.DecodeInt();
 
         var contract = new IBContract {
                                         Symbol = _enc.DecodeString(),
@@ -375,11 +375,11 @@ namespace Daemaged.IBNet.Server
       }
     }
 
-    private void ProcessAccountDataRequest() {}
+    void ProcessAccountDataRequest() {}
 
-    private void ProcessSetServerLogLevel() {}
+    void ProcessSetServerLogLevel() {}
 
-    private void ProcessLogin()
+    void ProcessLogin()
     {
       try {
         ClientInfo = _enc.DecodeClientInfo();
@@ -395,64 +395,55 @@ namespace Daemaged.IBNet.Server
       }
     }
 
-    private void OnLogin(TWSClientInfo clientInfo, TWSClientId clientId)
+    void OnLogin(TWSClientInfo clientInfo, TWSClientId clientId)
     {
-      if (Server != null)
-        Server.OnLogin(this, clientInfo, clientId);
+      Server?.OnLogin(this, clientInfo, clientId);
     }
 
-    private void OnContractDataRequest(IBContract contract)
+    void OnContractDataRequest(IBContract contract)
     {
-      if (Server != null)
-        Server.OnContractDetailsRequest(this, contract);
+      Server?.OnContractDetailsRequest(this, contract);
     }
 
-    private void OnMarketDataRequest(int reqId, IBContract contract)
+    void OnMarketDataRequest(int reqId, IBContract contract)
     {
-      if (Server != null)
-        Server.OnMarketDataRequest(this, reqId, contract);
+      Server?.OnMarketDataRequest(this, reqId, contract);
 
-      if (MarketDataRequest != null)
-        MarketDataRequest(this, new TWSMarketDataRequestEventArgs(this, reqId, contract));
+      MarketDataRequest?.Invoke(this, new TWSMarketDataRequestEventArgs(this, reqId, contract));
 
       _marketDataSubscriptions.Add(reqId, contract);
     }
 
-    private void OnMarketDepthCancel(int reqId)
+    void OnMarketDepthCancel(int reqId)
     {
       IBContract contract = null;
 
       if (_marketDepthSubscriptions.TryGetValue(reqId, out contract))
         _marketDepthSubscriptions.Remove(reqId);
 
-      if (Server != null)
-        Server.OnMarketDepthCancel(this, reqId, contract);
+      Server?.OnMarketDepthCancel(this, reqId, contract);
 
       if (MarketDataCancel != null)
         MarketDepthCancel(this, new TWSMarketDataCancelEventArgs(this, reqId, contract));
     }
 
-    private void OnMarketDataCancel(int reqId)
+    void OnMarketDataCancel(int reqId)
     {
       IBContract contract = null;
 
       if (_marketDataSubscriptions.TryGetValue(reqId, out contract))
         _marketDataSubscriptions.Remove(reqId);
 
-      if (Server != null)
-        Server.OnMarketDataCancel(this, reqId, contract);
+      Server?.OnMarketDataCancel(this, reqId, contract);
 
-      if (MarketDataCancel != null)
-        MarketDataCancel(this, new TWSMarketDataCancelEventArgs(this, reqId, contract));
+      MarketDataCancel?.Invoke(this, new TWSMarketDataCancelEventArgs(this, reqId, contract));
     }
 
-    private void OnMarketDepthRequest(int reqId, IBContract contract, int numRows)
+    void OnMarketDepthRequest(int reqId, IBContract contract, int numRows)
     {
-      if (Server != null)
-        Server.OnMarketDepthRequest(this, reqId, contract, numRows);
+      Server?.OnMarketDepthRequest(this, reqId, contract, numRows);
 
-      if (MarketDepthRequest != null)
-        MarketDepthRequest(this, new TWSMarketDepthRequestEventArgs(this, reqId, contract, numRows));
+      MarketDepthRequest?.Invoke(this, new TWSMarketDepthRequestEventArgs(this, reqId, contract, numRows));
     }
 
     #endregion
@@ -475,23 +466,21 @@ namespace Daemaged.IBNet.Server
 
     #region Error handling
 
-    private void OnError(string message)
+    void OnError(string message)
     {
       OnError(TWSErrors.NO_VALID_ID, new TWSError(TWSErrors.NO_VALID_CODE, message));
     }
 
-    private void OnError(TWSError error)
+    void OnError(TWSError error)
     {
       OnError(TWSErrors.NO_VALID_ID, error);
     }
 
-    private void OnError(int reqId, TWSError error)
+    void OnError(int reqId, TWSError error)
     {
-      if (Server != null)
-        Server.OnError(error);
+      Server?.OnError(error);
 
-      if (Error != null)
-        Error(this, new TWSServerErrorEventArgs(this, error));
+      Error?.Invoke(this, new TWSServerErrorEventArgs(this, error));
     }
 
     #endregion

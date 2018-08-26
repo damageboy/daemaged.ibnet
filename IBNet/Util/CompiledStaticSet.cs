@@ -7,8 +7,8 @@ namespace IBNet.Util
 {
   public class CompiledStaticSet<T> : ISet<T>
   {
-    private Func<T, bool> _existenceTester;
-    private HashSet<T> _set;
+    Func<T, bool> _existenceTester;
+    HashSet<T> _set;
 
     public CompiledStaticSet()
     {
@@ -22,7 +22,7 @@ namespace IBNet.Util
       RegenerateCompiledFunctions();
     }
 
-    private void RegenerateCompiledFunctions()
+    void RegenerateCompiledFunctions()
     {
       Func<T, bool> newexistenceTester;
       if (_set.Count == 0) {
