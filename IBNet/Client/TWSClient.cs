@@ -74,7 +74,6 @@ namespace Daemaged.IBNet.Client
     IPEndPoint _endPoint;
     protected Dictionary<int, TWSMarketDataSnapshot> _marketDataRecords = new Dictionary<int, TWSMarketDataSnapshot>();
     int _nextValidId;
-    Dictionary<string, int> _orderIds;
     bool _reconnect;
     bool _recordForPlayback;
     Stream _recordStream;
@@ -82,9 +81,10 @@ namespace Daemaged.IBNet.Client
     Stream _stream;
     TcpClient _tcpClient;
     Thread _thread;
-    string _twsTime;
     string NUMBER_DECIMAL_SEPARATOR;
     object _socketLock = new object();
+
+    public bool RecordingLastMessagesSupport = false;
 
     #region Constructors
 
@@ -97,10 +97,7 @@ namespace Daemaged.IBNet.Client
       _stream = null;
       _thread = null;
       Status = TWSClientStatus.Unknown;
-      _twsTime = String.Empty;
       _nextValidId = 0;
-
-      _orderIds = new Dictionary<string, int>();
 
       ClientInfo = new TWSClientInfo();
 
@@ -122,6 +119,12 @@ namespace Daemaged.IBNet.Client
         throw new ArgumentException($"could not resolve host {host}", "host");
       _endPoint = new IPEndPoint(address, port);
     }
+
+    public TWSClient(string host, int port, ITWSEncoding encoder) : this(host, port)
+    {
+      _enc = encoder;
+    }
+
     #endregion Constructors
 
     #region Connect/Disconnect
@@ -149,20 +152,28 @@ namespace Daemaged.IBNet.Client
           OnError(TWSErrors.ALREADY_CONNECTED);
           return;
         }
+
         try {
           _tcpClient = new TcpClient();
           _tcpClient.NoDelay = true;
           _tcpClient.Connect(_endPoint);
 
           lock (_socketLock) {
-            if (RecordForPlayback) {
-              if (_recordStream == null)
-                _recordStream = SetupDefaultRecordStream();
 
-              _enc = new TWSPlaybackRecorderEncoding(new BufferedReadStream(_tcpClient.GetStream()), _recordStream);
+            if (_enc == null) {
+              if (RecordForPlayback) {
+                if (_recordStream == null)
+                  _recordStream = SetupDefaultRecordStream();
+
+                _enc = new TWSPlaybackRecorderEncoding(new BufferedReadStream(_tcpClient.GetStream()), _recordStream);
+              } else
+                _enc = new TWSEncoding(new BufferedReadStream(_tcpClient.GetStream()));
             }
-            else
-              _enc = new TWSEncoding(new BufferedReadStream(_tcpClient.GetStream()));
+
+            // in case that stream has been created outside.
+            else {
+              _enc.SetStream(new BufferedReadStream(_tcpClient.GetStream()));
+            }
 
             _enc.Encode(ClientInfo);
             _enc.Flush();
@@ -171,15 +182,15 @@ namespace Daemaged.IBNet.Client
             // Only create a reader thread if this Feed IS NOT reconnecting
             if (!_reconnect) {
               _thread = new Thread(ProcessMessages) {
-                  IsBackground = true,
-                  Name = "IBReader"
-                };
+                IsBackground = true,
+                Name = "IBReader"
+              };
             }
+
             // Get the server version
             ServerInfo = _enc.DecodeServerInfo();
-            if (ServerInfo.Version >= 20)
-            {
-              _twsTime = _enc.DecodeString();
+            if (ServerInfo.Version >= 20) {
+              _enc.DecodeString();
             }
 
             if (ServerInfo.Version < TWSServerInfo.SERVER_VERSION) {
@@ -194,10 +205,10 @@ namespace Daemaged.IBNet.Client
                   var p = _tcpClient.Client.LocalEndPoint as IPEndPoint;
                   var ab = p.Address.GetAddressBytes();
                   clientId = ab[ab.Length - 1] << 16 | p.Port;
-                }
-                else
+                } else
                   clientId = new Random().Next();
               }
+
               var id = new TWSClientId(clientId);
               _enc.Encode(id);
             }
@@ -277,9 +288,13 @@ namespace Daemaged.IBNet.Client
 
         // Send cancel mkt data msg
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.CancelScannerSubscription);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
+
+          _enc.EndEncodeMessage();
         }
         catch (Exception) {
           Disconnect();
@@ -306,9 +321,13 @@ namespace Daemaged.IBNet.Client
 
         // Send cancel mkt data msg
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.CancelHistoricalData);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
+
+          _enc.EndEncodeMessage();
         }
         catch (Exception) {
           Disconnect();
@@ -324,9 +343,13 @@ namespace Daemaged.IBNet.Client
           throw new NotConnectedException();
         const int reqVersion = 1;
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.CancelMarketData);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
+
+          _enc.EndEncodeMessage();
         }
         catch (Exception) {
           Disconnect();
@@ -346,9 +369,13 @@ namespace Daemaged.IBNet.Client
         }
         const int reqVersion = 1;
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.CancelMarketDepth);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
+
+          _enc.EndEncodeMessage();
         }
         catch (Exception) {
           Disconnect();
@@ -368,8 +395,12 @@ namespace Daemaged.IBNet.Client
 
         // Send cancel order msg
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.CancelNewsBulletins);
           _enc.Encode(reqVersion);
+
+          _enc.EndEncodeMessage();
         }
         catch (Exception) {
           Disconnect();
@@ -390,9 +421,13 @@ namespace Daemaged.IBNet.Client
           throw new NotConnectedException();
         const int reqVersion = 1;
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.CancelOrder);
           _enc.Encode(reqVersion);
           _enc.Encode(orderId);
+
+          _enc.EndEncodeMessage();
         }
         catch (Exception) {
           Disconnect();
@@ -417,9 +452,13 @@ namespace Daemaged.IBNet.Client
 
         // send cancel mkt data msg
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.CancelHistoricalData);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -1961,9 +2000,11 @@ namespace Daemaged.IBNet.Client
     void ProcessMessages()
     {
       try {
+        //var spinner = new SpinWait();
         while (_doWork) {
           if (!ProcessSingleMessage())
             return;
+          //spinner.SpinOnce();
         }
       }
       catch (Exception e) {
@@ -1978,7 +2019,9 @@ namespace Daemaged.IBNet.Client
 
     protected bool ProcessSingleMessage()
     {
-      var msgCode = _enc.DecodeEnum<ClientMessage>();
+      _enc.BeginDecodeMessage();
+
+      var msgCode = _enc.DecodeClientMessage();
 
       // Can't process this
       if (msgCode == ClientMessage.Error)
@@ -2024,6 +2067,8 @@ namespace Daemaged.IBNet.Client
           return false;
       }
 
+      _enc.EndDecodeMessage();
+
       // All is well
       return true;
     }
@@ -2052,6 +2097,8 @@ namespace Daemaged.IBNet.Client
         var reqVersion = ServerInfo.Version < TWSServerInfo.MIN_SERVER_VER_NOT_HELD ? 27 : 39;
 
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.PlaceOrder);
           _enc.Encode(reqVersion);
           _enc.Encode(orderId);
@@ -2322,6 +2369,8 @@ namespace Daemaged.IBNet.Client
 
           if (ServerInfo.Version >= TWSServerInfo.MIN_SERVER_VER_WHAT_IF_ORDERS)
         	  _enc.Encode(order.WhatIf);
+
+          _enc.EndEncodeMessage();
         }
         catch (Exception) {
           Disconnect();
@@ -2448,6 +2497,8 @@ namespace Daemaged.IBNet.Client
             return;
           }
 
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.ExerciseOptions);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
@@ -2464,6 +2515,8 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(exerciseQuantity);
           _enc.Encode(account);
           _enc.Encode(overrideOrder);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -2482,9 +2535,13 @@ namespace Daemaged.IBNet.Client
 
         // send the set server logging level message
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.SetServerLogLevel);
           _enc.Encode(reqVersion);
           _enc.Encode(logLevel);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -2507,6 +2564,8 @@ namespace Daemaged.IBNet.Client
         try {
           if (ServerInfo.Version < 16)
             throw new TWSOutdatedException();
+
+          _enc.BeginEncodeMessage();
 
           _enc.Encode(ServerMessage.RequestHistoricalData);
           _enc.Encode(reqVersion);
@@ -2547,6 +2606,8 @@ namespace Daemaged.IBNet.Client
               }
             }
           }
+
+          _enc.EndEncodeMessage();
         }
         catch (Exception) {
           Disconnect();
@@ -2600,6 +2661,8 @@ namespace Daemaged.IBNet.Client
           reqId = NextValidId;
 
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestMarketData);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
@@ -2663,6 +2726,8 @@ namespace Daemaged.IBNet.Client
 
           _enc.Flush();
 
+          _enc.EndEncodeMessage();
+
           return reqId;
         }
         catch (Exception e) {
@@ -2683,8 +2748,12 @@ namespace Daemaged.IBNet.Client
 
         // send req FA managed accounts msg
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestManagedAccounts);
           _enc.Encode(reqVersion);
+
+          _enc.EndEncodeMessage();
         }
         catch (Exception) {
           Disconnect();
@@ -2707,9 +2776,13 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 1;
 
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestFA);
           _enc.Encode(reqVersion);
           _enc.Encode(faDataType);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -2731,10 +2804,14 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 1;
 
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.ReplaceFA);
           _enc.Encode(reqVersion);
           _enc.Encode(faDataType);
           _enc.Encode(xml);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -2754,8 +2831,12 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 1;
 
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestScannerParameters);
           _enc.Encode(reqVersion);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -2775,6 +2856,8 @@ namespace Daemaged.IBNet.Client
         const int VERSION = 3;
 
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestScannerSubscription);
           _enc.Encode(VERSION);
           _enc.Encode(tickerId);
@@ -2802,6 +2885,9 @@ namespace Daemaged.IBNet.Client
           }
           if (ServerInfo.Version >= 27)
             _enc.Encode(subscription.StockTypeFilter);
+
+          _enc.EndEncodeMessage();
+
         } catch (Exception) {
           Disconnect();
           throw;
@@ -2822,9 +2908,13 @@ namespace Daemaged.IBNet.Client
 
         // send the reqMarketDataType message
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestMarketDataType);
           _enc.Encode(reqVersion);
           _enc.Encode(marketDataType);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -2844,6 +2934,8 @@ namespace Daemaged.IBNet.Client
         const int VERSION = 1;
 
         try {
+          _enc.BeginEncodeMessage();
+
           // send req fund data msg
           _enc.Encode(ServerMessage.RequestFundamentalData);
           _enc.Encode(VERSION);
@@ -2858,6 +2950,8 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(contract.LocalSymbol);
 
           _enc.Encode(reportType);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -2877,10 +2971,14 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 1;
 
         try {
+          _enc.BeginEncodeMessage();
+
           // send req mkt data msg
           _enc.Encode(ServerMessage.CancelFundamentalData);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -2900,6 +2998,8 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 1;
 
         try {
+          _enc.BeginEncodeMessage();
+
           // send calculate implied volatility msg
           _enc.Encode(ServerMessage.RequestCalcImpliedVolatility);
           _enc.Encode(reqVersion);
@@ -2920,6 +3020,8 @@ namespace Daemaged.IBNet.Client
 
           _enc.Encode(optionPrice);
           _enc.Encode(underPrice);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -2939,10 +3041,14 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 1;
 
         try {
+          _enc.BeginEncodeMessage();
+
           // send cancel calculate implied volatility msg
           _enc.Encode(ServerMessage.CancelCalcImpliedVolatility);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -2962,6 +3068,8 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 1;
 
         try {
+          _enc.BeginEncodeMessage();
+
           // send calculate option price msg
           _enc.Encode(ServerMessage.RequestCalcOptionPrice);
           _enc.Encode(reqVersion);
@@ -2982,6 +3090,8 @@ namespace Daemaged.IBNet.Client
 
           _enc.Encode(volatility);
           _enc.Encode(underPrice);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -3001,10 +3111,14 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 1;
 
         try {
+          _enc.BeginEncodeMessage();
+
           // send cancel calculate option price msg
           _enc.Encode(ServerMessage.CancelCalcOptionPrice);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -3026,8 +3140,12 @@ namespace Daemaged.IBNet.Client
 
         // send request global cancel msg
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestGlobalCancel);
           _enc.Encode(VERSION);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -3048,6 +3166,8 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 1;
 
         try {
+          _enc.BeginEncodeMessage();
+
           // send req mkt data msg
           _enc.Encode(ServerMessage.RequestRealTimeBars);
           _enc.Encode(reqVersion);
@@ -3066,6 +3186,8 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(barSize);
           _enc.Encode(whatToShow);
           _enc.Encode(useRTH);
+
+          _enc.EndEncodeMessage();
         } catch (Exception e) {
           Disconnect();
           throw;
@@ -3085,6 +3207,8 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 3;
         var reqId = NextValidId;
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestMarketDepth);
           _enc.Encode(reqVersion);
           _enc.Encode(reqId);
@@ -3100,6 +3224,8 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(contract.LocalSymbol);
           if (ServerInfo.Version >= 19)
             _enc.Encode(numRows);
+
+          _enc.EndEncodeMessage();
         }
         catch (Exception) {
           Disconnect();
@@ -3120,9 +3246,13 @@ namespace Daemaged.IBNet.Client
 
         // send req open orders msg
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestAutoOpenOrders);
           _enc.Encode(reqVersion);
           _enc.Encode(autoBind);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -3140,9 +3270,13 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 1;
 
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestIds);
           _enc.Encode(reqVersion);
           _enc.Encode(numIds);
+
+          _enc.EndEncodeMessage();
         } catch (Exception e) {
           Disconnect();
           throw;
@@ -3161,8 +3295,12 @@ namespace Daemaged.IBNet.Client
 
         // send cancel order msg
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestOpenOrders);
           _enc.Encode(reqVersion);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -3181,6 +3319,8 @@ namespace Daemaged.IBNet.Client
 
         // send cancel order msg
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestAccountData);
           _enc.Encode(reqVersion);
           _enc.Encode(subscribe);
@@ -3189,6 +3329,8 @@ namespace Daemaged.IBNet.Client
           if (ServerInfo.Version >= 9) {
             _enc.Encode(acctCode);
           }
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -3207,8 +3349,12 @@ namespace Daemaged.IBNet.Client
 
         // send req all open orders msg
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestAllOpenOrders);
           _enc.Encode(reqVersion);
+
+          _enc.EndEncodeMessage();
         } catch (Exception e) {
           OnError(TWSErrors.FAIL_SEND_OORDER);
           OnError(e.Message);
@@ -3234,6 +3380,8 @@ namespace Daemaged.IBNet.Client
 
         // send cancel order msg
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestExecutions);
           _enc.Encode(reqVersion);
 
@@ -3254,6 +3402,9 @@ namespace Daemaged.IBNet.Client
             _enc.Encode(filter.Exchange);
             _enc.Encode(filter.Side);
           }
+
+          _enc.EndEncodeMessage();
+
           return requestId;
         } catch (Exception) {
           Disconnect();
@@ -3272,9 +3423,13 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 1;
 
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestNewsBulletins);
           _enc.Encode(reqVersion);
           _enc.Encode(allMsgs);
+
+          _enc.EndEncodeMessage();
         } catch (Exception) {
           Disconnect();
           throw;
@@ -3307,6 +3462,8 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 6;
 
         try {
+          _enc.BeginEncodeMessage();
+
           // send req mkt data msg
           _enc.Encode(ServerMessage.RequestContractData);
           _enc.Encode(reqVersion);
@@ -3337,6 +3494,9 @@ namespace Daemaged.IBNet.Client
             _enc.Encode(contract.SecurityIdType);
             _enc.Encode(contract.SecurityId);
           }
+
+          _enc.EndEncodeMessage();
+
           return requestId;
         } catch (Exception) {
           Disconnect();
@@ -3360,8 +3520,12 @@ namespace Daemaged.IBNet.Client
         const int reqVersion = 1;
 
         try {
+          _enc.BeginEncodeMessage();
+
           _enc.Encode(ServerMessage.RequestCurrentTime);
           _enc.Encode(reqVersion);
+
+          _enc.EndEncodeMessage();
         } catch (Exception e) {
           Disconnect();
           throw;

@@ -42,6 +42,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
@@ -51,7 +52,6 @@ using IBNet.Util;
 
 namespace Daemaged.IBNet
 {
-
   public class TWSEncoding : ITWSEncoding
   {
     class EnumEncDec
@@ -89,11 +89,14 @@ namespace Daemaged.IBNet
     }
 
     const string IB_EXPIRY_DATE_FORMAT = "yyyyMMdd";
-    readonly string NUMBER_DECIMAL_SEPARATOR;
 
     static readonly Dictionary<Type, EnumEncDec> _enumDecoders;
 
-    protected Stream _stream;
+    protected Stream Stream;
+
+    protected bool ExpectForServerMessage, ExpectForClientMessage;
+    protected ServerMessage LastServerMessageEncoded;
+    protected ClientMessage LastClientMessageDecoded;
 
     static TWSEncoding()
     {
@@ -118,10 +121,22 @@ namespace Daemaged.IBNet
         throw new ArgumentException($"Type {e} doesn't have seriazliation value for each member");
     }
 
+    public TWSEncoding()
+    {
+      Stream = null;
+    }
+
     public TWSEncoding(Stream stream)
     {
-      _stream = stream;
-      NUMBER_DECIMAL_SEPARATOR = NumberFormatInfo.CurrentInfo.NumberDecimalSeparator;
+      Stream = stream;
+    }
+
+    public void SetStream(Stream stream)
+    {
+      if (Stream != null)
+        throw new Exception("Stream is already initialized!");
+
+      Stream = stream;
     }
 
     #region Encode Wrappers
@@ -159,6 +174,7 @@ namespace Daemaged.IBNet
       public static Func<T, int> ToInt { get; private set; }
       public static Func<int, T> ToT { get; private set; }
     }
+
     public void Encode<T>(T value) where T : struct, IConvertible
     {
       var t = typeof (T);
@@ -194,7 +210,7 @@ namespace Daemaged.IBNet
 
     public void Flush()
     {
-      _stream.Flush();
+      Stream.Flush();
     }
 
     public virtual void EncodeMax(int value)
@@ -278,27 +294,33 @@ namespace Daemaged.IBNet
 
     public virtual void Encode(string text)
     {
+      Debug.Assert(!ExpectForServerMessage);
+
       if (!String.IsNullOrEmpty(text)) {
         var bytes = Encoding.UTF8.GetBytes(text);
-        _stream.Write(bytes, 0, bytes.Length);
+        Stream.Write(bytes, 0, bytes.Length);
       }
 
-      _stream.WriteByte(0);
-      _stream.Flush();
+      Stream.WriteByte(0);
+      Stream.Flush();
     }
 
     public virtual string DecodeString()
     {
+      Debug.Assert(!ExpectForClientMessage);
+
       var sb = new StringBuilder();
 
       while (true) {
-        var b = _stream.ReadByte();
+        var b = Stream.ReadByte();
         if ((b == 0) || (b == -1))
           goto decode_string_finished;
         sb.Append((char) b);
       }
       decode_string_finished:
-      return sb.Length != 0 ? sb.ToString() : null;
+      var decodeString = sb.Length != 0 ? sb.ToString() : null;
+
+      return decodeString;
     }
 
     public T DecodeEnum<T>() where T : struct, IConvertible
@@ -310,6 +332,39 @@ namespace Daemaged.IBNet
       // Is this a TWS string based enum?
       return IntCaster<T>.ToT(intValue);
     }
+
+    public ClientMessage DecodeClientMessage()
+    {
+      Debug.Assert(ExpectForClientMessage);
+      ExpectForClientMessage = false;
+      var clientMsg = DecodeEnum<ClientMessage>();
+      LastClientMessageDecoded = clientMsg;
+      return clientMsg;
+    }
+
+    public virtual void BeginDecodeMessage()
+    {
+      LastClientMessageDecoded = ClientMessage.Undefined;
+      ExpectForClientMessage = true;
+     }
+
+    public virtual void EndDecodeMessage() {}
+
+    public void Encode(ServerMessage value)
+    {
+      Debug.Assert(ExpectForServerMessage);
+      ExpectForServerMessage = false;
+      Encode(IntCaster<ServerMessage>.ToInt(value));
+      LastServerMessageEncoded = value;
+    }
+
+    public virtual void BeginEncodeMessage()
+    {
+      LastServerMessageEncoded = ServerMessage.Undefined;
+      ExpectForServerMessage = true;
+    }
+
+    public virtual void EndEncodeMessage() {}
 
     #endregion
   }
