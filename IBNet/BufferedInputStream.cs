@@ -6,25 +6,25 @@
 //  by Dan Shechter
 ////////////////////////////////////////////////////////////////////////////////////////
 //  License: MPL 1.1/GPL 2.0/LGPL 2.1
-//  
-//  The contents of this file are subject to the Mozilla Public License Version 
-//  1.1 (the "License"); you may not use this file except in compliance with 
-//  the License. You may obtain a copy of the License at 
+//
+//  The contents of this file are subject to the Mozilla Public License Version
+//  1.1 (the "License"); you may not use this file except in compliance with
+//  the License. You may obtain a copy of the License at
 //  http://www.mozilla.org/MPL/
-//  
+//
 //  Software distributed under the License is distributed on an "AS IS" basis,
 //  WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 //  for the specific language governing rights and limitations under the
 //  License.
-//  
+//
 //  The Original Code is any part of this file that is not marked as a contribution.
-//  
+//
 //  The Initial Developer of the Original Code is Dan Shecter.
 //  Portions created by the Initial Developer are Copyright (C) 2007
 //  the Initial Developer. All Rights Reserved.
-//  
+//
 //  Contributor(s): None.
-//  
+//
 //  Alternatively, the contents of this file may be used under the terms of
 //  either the GNU General Public License Version 2 or later (the "GPL"), or
 //  the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
@@ -167,7 +167,7 @@ namespace Daemaged.IBNet
 
     // Reading is done by blocks from the file, but someone could read
     // 1 byte from the buffer then write.  At that point, the OS's file
-    // pointer is out of sync with the stream's position.  All write 
+    // pointer is out of sync with the stream's position.  All write
     // functions should call this function to preserve the position in the file.
     void FlushRead()
     {
@@ -294,8 +294,8 @@ namespace Daemaged.IBNet
       var pos = _s.Seek(offset, origin);
 
       // We now must update the read buffer.  We can in some cases simply
-      // update _readPos within the buffer, copy around the buffer so our 
-      // Position property is still correct, and avoid having to do more 
+      // update _readPos within the buffer, copy around the buffer so our
+      // Position property is still correct, and avoid having to do more
       // reads from the disk.  Otherwise, discard the buffer's contents.
       if (_readLen > 0) {
         // We can optimize the following condition:
@@ -307,7 +307,7 @@ namespace Daemaged.IBNet
             _readLen -= _readPos;
             _readPos = 0;
           }
-          // If we still have buffered data, we must update the stream's 
+          // If we still have buffered data, we must update the stream's
           // position so our Position property is correct.
           if (_readLen > 0)
             _s.Seek(_readLen, SeekOrigin.Current);
