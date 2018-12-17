@@ -258,8 +258,8 @@ namespace Daemaged.IBNet
     /// </summary>
     public StreamOwnership StreamsOwned
     {
-      get { return m_streamsOwned; }
-      set { m_streamsOwned = value; }
+      get => m_streamsOwned;
+      set => m_streamsOwned = value;
     }
 
     /// <summary>
@@ -268,10 +268,7 @@ namespace Daemaged.IBNet
     /// to the primary stream.  When data is read from the
     /// <see cref="EchoStream"/>, it is read from the primary stream.
     /// </summary>
-    public Stream PrimaryStream
-    {
-      get { return _primaryStream; }
-    }
+    public Stream PrimaryStream => _primaryStream;
 
     /// <summary>
     /// Gets the slave stream for the <see cref="EchoStream"/>.  When
@@ -282,10 +279,7 @@ namespace Daemaged.IBNet
     /// data is read from the primary stream is then written (echoed) into
     /// the slave stream.
     /// </summary>
-    public Stream SlaveStream
-    {
-      get { return _slaveStream; }
-    }
+    public Stream SlaveStream => _slaveStream;
 
     #endregion // Non-Error Properties
 
@@ -310,10 +304,7 @@ namespace Daemaged.IBNet
     /// use of this property to recover from reads that failed because of
     /// a downed slave stream.
     /// </remarks>
-    public int LastReadResult
-    {
-      get { return m_lastReadResult; }
-    }
+    public int LastReadResult => m_lastReadResult;
 
     /// <summary>
     /// Sets the action to use for all possible failures.  It is more
@@ -361,7 +352,7 @@ namespace Daemaged.IBNet
     /// </summary>
     public SlaveFailAction SlaveReadFailAction
     {
-      get { return m_readFailAction; }
+      get => m_readFailAction;
 
       set
       {
@@ -388,7 +379,7 @@ namespace Daemaged.IBNet
     /// </summary>
     public SlaveFailAction SlaveWriteFailAction
     {
-      get { return m_writeFailAction; }
+      get => m_writeFailAction;
 
       set
       {
@@ -415,7 +406,7 @@ namespace Daemaged.IBNet
     /// </summary>
     public SlaveFailAction SlaveSeekFailAction
     {
-      get { return m_seekFailAction; }
+      get => m_seekFailAction;
 
       set
       {
@@ -443,7 +434,7 @@ namespace Daemaged.IBNet
     /// </summary>
     public SlaveFailHandler SlaveWriteFailFilter
     {
-      get { return m_slaveWriteFailFilter; }
+      get => m_slaveWriteFailFilter;
 
       set
       {
@@ -476,7 +467,7 @@ namespace Daemaged.IBNet
     /// </summary>
     public SlaveFailHandler SlaveReadFailFilter
     {
-      get { return m_slaveReadFailFilter; }
+      get => m_slaveReadFailFilter;
 
       set
       {
@@ -508,7 +499,7 @@ namespace Daemaged.IBNet
     /// </summary>
     public SlaveFailHandler SlaveSeekFailFilter
     {
-      get { return m_slaveSeekFailFilter; }
+      get => m_slaveSeekFailFilter;
 
       set
       {
@@ -541,28 +532,19 @@ namespace Daemaged.IBNet
     /// Returns the value of CanRead provided by the primary stream.
     /// See <see cref="Stream.CanRead"/>.
     /// </summary>
-    public override bool CanRead
-    {
-      get { return _primaryStream.CanRead; }
-    }
+    public override bool CanRead => _primaryStream.CanRead;
 
     /// <summary>
     /// Returns true if CanSeek on both the primary stream and the slave
     /// stream returns true.
     /// </summary>
-    public override bool CanSeek
-    {
-      get { return _primaryStream.CanSeek && _slaveStream.CanSeek; }
-    }
+    public override bool CanSeek => _primaryStream.CanSeek && _slaveStream.CanSeek;
 
     /// <summary>
     /// Returns true if the primary stream can timeout. The slave's ability
     /// to timeout is insignificant.
     /// </summary>
-    public override bool CanTimeout
-    {
-      get { return _primaryStream.CanTimeout; }
-    }
+    public override bool CanTimeout => _primaryStream.CanTimeout;
 
     /// <summary>
     /// Returns true if CanWrite on both the primary stream and the slave
@@ -570,20 +552,14 @@ namespace Daemaged.IBNet
     /// <see cref="SlaveStream"/>'s CanWrite returns false is not
     /// very useful.
     /// </summary>
-    public override bool CanWrite
-    {
-      get { return _primaryStream.CanWrite && _slaveStream.CanWrite; }
-    }
+    public override bool CanWrite => _primaryStream.CanWrite && _slaveStream.CanWrite;
 
     /// <summary>
     /// Gets the length of the stream.  For <see cref="EchoStream"/>, this
     /// is the length of the primary stream, since the slave stream is never
     /// read by the <see cref="EchoStream"/>.
     /// </summary>
-    public override long Length
-    {
-      get { return _primaryStream.Length; }
-    }
+    public override long Length => _primaryStream.Length;
 
     /// <summary>
     /// Gets and sets the current position of the stream.
@@ -609,7 +585,7 @@ namespace Daemaged.IBNet
     /// </remarks>
     public override long Position
     {
-      get { return _primaryStream.Position; }
+      get => _primaryStream.Position;
 
       set
       {
@@ -647,8 +623,8 @@ namespace Daemaged.IBNet
     /// </summary>
     public override int ReadTimeout
     {
-      get { return _primaryStream.ReadTimeout; }
-      set { _primaryStream.ReadTimeout = value; }
+      get => _primaryStream.ReadTimeout;
+      set => _primaryStream.ReadTimeout = value;
     }
 
     /// <summary>
@@ -657,8 +633,8 @@ namespace Daemaged.IBNet
     /// </summary>
     public override int WriteTimeout
     {
-      get { return _primaryStream.WriteTimeout; }
-      set { _primaryStream.WriteTimeout = value; }
+      get => _primaryStream.WriteTimeout;
+      set => _primaryStream.WriteTimeout = value;
     }
 
     /// <summary>

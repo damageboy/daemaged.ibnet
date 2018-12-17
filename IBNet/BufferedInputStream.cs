@@ -86,20 +86,11 @@ namespace Daemaged.IBNet
         Error_StreamIsClosed();
     }
 
-    public override bool CanRead
-    {
-      get { return _s != null && _s.CanRead; }
-    }
+    public override bool CanRead => _s != null && _s.CanRead;
 
-    public override bool CanWrite
-    {
-      get { return _s != null && _s.CanWrite; }
-    }
+    public override bool CanWrite => _s != null && _s.CanWrite;
 
-    public override bool CanSeek
-    {
-      get { return _s != null && _s.CanSeek; }
-    }
+    public override bool CanSeek => _s != null && _s.CanSeek;
 
     public override long Length
     {

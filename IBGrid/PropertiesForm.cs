@@ -16,6 +16,6 @@ namespace IBGrid
             InitializeComponent();
         }
 
-        public PropertyGrid PropertyGrid { get { return propertyGrid; } }
+        public PropertyGrid PropertyGrid => propertyGrid;
     }
 }

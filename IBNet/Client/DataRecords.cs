@@ -116,7 +116,7 @@ namespace Daemaged.IBNet.Client
 
     public int Volume
     {
-      get { return _volume; }
+      get => _volume;
       set
       {
         _volume = value;
@@ -130,7 +130,7 @@ namespace Daemaged.IBNet.Client
 
     public int LastSize
     {
-      get { return _lastSize; }
+      get => _lastSize;
       set
       {
         // We got the first notification of today's volume
@@ -147,7 +147,7 @@ namespace Daemaged.IBNet.Client
 
     public int BidSize
     {
-      get { return _bidSize; }
+      get => _bidSize;
       set
       {
         _bidSize = value;
@@ -158,7 +158,7 @@ namespace Daemaged.IBNet.Client
     public int AskSize
 
     {
-      get { return _askSize; }
+      get => _askSize;
       set
       {
         _askSize = value;

@@ -74,10 +74,7 @@ namespace IBNet.Util
       return _existenceTester(key);
     }
 
-    public ICollection<TK> Keys
-    {
-      get { return _dict.Keys; }
-    }
+    public ICollection<TK> Keys => _dict.Keys;
 
     public bool Remove(TK key)
     {
@@ -98,14 +95,11 @@ namespace IBNet.Util
       return false;
     }
 
-    public ICollection<TV> Values
-    {
-      get { return _dict.Values; }
-    }
+    public ICollection<TV> Values => _dict.Values;
 
     public TV this[TK key]
     {
-      get { return _mapper(key); }
+      get => _mapper(key);
       set
       {
         _dict[key] = value;
@@ -139,15 +133,9 @@ namespace IBNet.Util
       //_dict.CopyTo(array, arrayIndex);
     }
 
-    public int Count
-    {
-      get { return _dict.Count; }
-    }
+    public int Count => _dict.Count;
 
-    public bool IsReadOnly
-    {
-      get { return false; }
-    }
+    public bool IsReadOnly => false;
 
     public bool Remove(KeyValuePair<TK, TV> item)
     {
@@ -241,10 +229,7 @@ namespace IBNet.Util
       return _existenceTester(_keyMapper(key));
     }
 
-    public ICollection<TK> Keys
-    {
-      get { return _dict.Keys; }
-    }
+    public ICollection<TK> Keys => _dict.Keys;
 
     public bool Remove(TK key)
     {
@@ -265,14 +250,11 @@ namespace IBNet.Util
       return false;
     }
 
-    public ICollection<TV> Values
-    {
-      get { return _dict.Values; }
-    }
+    public ICollection<TV> Values => _dict.Values;
 
     public TV this[TK key]
     {
-      get { return _mapper(_keyMapper(key)); }
+      get => _mapper(_keyMapper(key));
       set
       {
         _dict[key] = value;
@@ -306,15 +288,9 @@ namespace IBNet.Util
       //_dict.CopyTo(array, arrayIndex);
     }
 
-    public int Count
-    {
-      get { return _dict.Count; }
-    }
+    public int Count => _dict.Count;
 
-    public bool IsReadOnly
-    {
-      get { return false; }
-    }
+    public bool IsReadOnly => false;
 
     public bool Remove(KeyValuePair<TK, TV> item)
     {

@@ -85,10 +85,7 @@ namespace Daemaged.IBNet.Server
     public virtual TWSServerState State { get; protected set; }
     public virtual TWSServer Server { get; protected set; }
 
-    public virtual TWSServerInfo ServerInfo
-    {
-      get { return Server.ServerInfo; }
-    }
+    public virtual TWSServerInfo ServerInfo => Server.ServerInfo;
 
     public virtual TWSClientInfo ClientInfo { get; protected set; }
     public virtual TWSClientId ClientId { get; protected set; }

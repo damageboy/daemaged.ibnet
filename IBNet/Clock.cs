@@ -61,10 +61,7 @@ namespace Daemaged.IBNet
     }
 
 
-    public ClockMode Mode
-    {
-      get { return _mode; }
-    }
+    public ClockMode Mode => _mode;
 
     public DateTime Now
     {

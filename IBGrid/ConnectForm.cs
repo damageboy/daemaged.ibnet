@@ -13,13 +13,13 @@ namespace IBGrid
 
         public System.Windows.Forms.TextBox HostTextBox
         {
-            get { return hostTextBox; }
-            set { hostTextBox = value; }
+            get => hostTextBox;
+            set => hostTextBox = value;
         }
         public System.Windows.Forms.TextBox PortTextBox
         {
-            get { return portTextBox; }
-            set { portTextBox = value; }
+            get => portTextBox;
+            set => portTextBox = value;
         }
 
         public ConnectForm()

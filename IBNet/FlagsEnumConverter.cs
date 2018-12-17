@@ -174,10 +174,7 @@ namespace Daemaged.IBNet
 
       #region Properties
 
-      public override AttributeCollection Attributes
-      {
-        get { return new AttributeCollection(new Attribute[] {RefreshPropertiesAttribute.Repaint}); }
-      }
+      public override AttributeCollection Attributes => new AttributeCollection(new Attribute[] {RefreshPropertiesAttribute.Repaint});
 
       #endregion
     }

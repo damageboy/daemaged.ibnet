@@ -66,8 +66,8 @@ namespace Daemaged.IBNet
         _enumDeserializares = GenerateDeserializationDictionary(t);
       }
 
-      public IDictionary<string, int> EnumDeserializares { get { return _enumDeserializares; } }
-      public IDictionary<int, string> EnumSerializares { get { return _enumSerializares; } }
+      public IDictionary<string, int> EnumDeserializares => _enumDeserializares;
+      public IDictionary<int, string> EnumSerializares => _enumSerializares;
 
       static IDictionary<string, int> GenerateDeserializationDictionary(Type e)
       {

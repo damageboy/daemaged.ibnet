@@ -82,9 +82,7 @@ namespace Daemaged.IBNet.Client
     TcpClient _tcpClient;
     Thread _thread;
     string NUMBER_DECIMAL_SEPARATOR;
-    object _socketLock = new object();
-
-    public bool RecordingLastMessagesSupport = false;
+    readonly object _socketLock = new object();
 
     #region Constructors
 
@@ -3556,21 +3554,15 @@ namespace Daemaged.IBNet.Client
 
     #endregion Utilities
 
-    int NextValidId
-    {
-      get { return Interlocked.Increment(ref _nextValidId); }
-    }
+    int NextValidId => Interlocked.Increment(ref _nextValidId);
 
-    public bool IsConnected
-    {
-      get { return Status == TWSClientStatus.Connected; }
-    }
+    public bool IsConnected => Status == TWSClientStatus.Connected;
 
     public TWSClientStatus Status { get; private set; }
 
     public bool RecordForPlayback
     {
-      get { return _recordForPlayback; }
+      get => _recordForPlayback;
       set
       {
         if (IsConnected && _recordForPlayback != value)
@@ -3582,7 +3574,7 @@ namespace Daemaged.IBNet.Client
 
     public Stream RecordStream
     {
-      get { return _recordStream; }
+      get => _recordStream;
       set
       {
         if (IsConnected && _recordStream != value)
@@ -3601,7 +3593,7 @@ namespace Daemaged.IBNet.Client
     /// <exception cref="System.Exception">Client already connected, cannot set the EndPoint</exception>
     public IPEndPoint EndPoint
     {
-      get { return _endPoint; }
+      get => _endPoint;
       set
       {
         if (IsConnected)
@@ -3612,7 +3604,7 @@ namespace Daemaged.IBNet.Client
 
     public TWSClientSettings Settings
     {
-      get { return _settings; }
+      get => _settings;
       set
       {
         if (!IsConnected)
@@ -3729,7 +3721,7 @@ namespace Daemaged.IBNet.Client
 
     public TWSError TWSError { get; private set; }
 
-    public override string Message { get { return TWSError.Message; } }
+    public override string Message => TWSError.Message;
   }
 
   internal class OrderRecord

@@ -65,10 +65,7 @@ namespace Daemaged.IBNet
       _instance.Add(24*60*60, 11);
     }
 
-    public static IBBarSizeMap Instance
-    {
-      get { return _instance; }
-    }
+    public static IBBarSizeMap Instance => _instance;
   }
 
   internal class IBHistoryTypes

@@ -53,9 +53,6 @@ namespace Daemaged.IBNet.Playback
       _enc = encoding;
     }
 
-    public override TWSServerInfo ServerInfo
-    {
-      get { return new TWSServerInfo(66); }
-    }
+    public override TWSServerInfo ServerInfo => new TWSServerInfo(66);
   }
 }

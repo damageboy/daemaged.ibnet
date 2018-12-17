@@ -138,7 +138,7 @@ namespace IBNet.Util
       return r;
     }
 
-    public int Count { get { return _set.Count; } }
-    public bool IsReadOnly { get { return false; } }
+    public int Count => _set.Count;
+    public bool IsReadOnly => false;
   }
 }

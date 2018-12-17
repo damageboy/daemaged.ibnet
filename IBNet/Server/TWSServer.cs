@@ -72,10 +72,7 @@ namespace Daemaged.IBNet.Server
     public TWSServerInfo ServerInfo { get; private set; }
     public TWSServerStatus Status { get; private set; }
 
-    public bool IsRunning
-    {
-      get { return Status == TWSServerStatus.Running; }
-    }
+    public bool IsRunning => Status == TWSServerStatus.Running;
 
     public IPEndPoint EndPoint { get; set; }
 
