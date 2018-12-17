@@ -5,11 +5,6 @@ VisualStudioVersion = 15.0.27703.2047
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IBGrid", "IBGrid\IBGrid.csproj", "{E737E95A-A21C-499D-8D2C-5BC3A382EB39}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{05CF9029-8485-46A3-BCB2-FB04F8A4D1B0}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\packages.config = .nuget\packages.config
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7D55EC27-BE4A-4447-850D-08A19920E199}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
