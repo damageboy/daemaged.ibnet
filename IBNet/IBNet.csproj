@@ -5,7 +5,7 @@
     <Authors>Dan Shechter</Authors>
     <Description>IB TWS api for .NET</Description>
     <PackageId>Daemaged.IBNet</PackageId>
-    <Version>9.6.8.15</Version>
+    <Version>9.6.8.16</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Title>Daemaged.IBNet</Title>
     <PackageProjectUrl>https://github.com/damageboy/daemaged.ibnet</PackageProjectUrl>

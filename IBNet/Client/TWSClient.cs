@@ -80,9 +80,9 @@ namespace Daemaged.IBNet.Client
     TWSClientSettings _settings;
     Stream _stream;
     TcpClient _tcpClient;
-    Thread _thread;
     string NUMBER_DECIMAL_SEPARATOR;
     readonly object _socketLock = new object();
+    public Thread Thread { get; private set; }
 
     #region Constructors
 
@@ -93,7 +93,7 @@ namespace Daemaged.IBNet.Client
     {
       _tcpClient = null;
       _stream = null;
-      _thread = null;
+      Thread = null;
       Status = TWSClientStatus.Unknown;
       _nextValidId = 0;
 
@@ -179,7 +179,7 @@ namespace Daemaged.IBNet.Client
 
             // Only create a reader thread if this Feed IS NOT reconnecting
             if (!_reconnect) {
-              _thread = new Thread(ProcessMessages) {
+              Thread = new Thread(ProcessMessages) {
                 IsBackground = true,
                 Name = "IBReader"
               };
@@ -214,7 +214,7 @@ namespace Daemaged.IBNet.Client
 
           // Only start the thread if this Feed IS NOT reconnecting
           if (!_reconnect)
-            _thread.Start();
+            Thread.Start();
 
           _clientId = clientId;
           OnStatusChanged(Status = TWSClientStatus.Connected);
@@ -237,7 +237,7 @@ namespace Daemaged.IBNet.Client
         lock (_socketLock) {
           _doWork = false;
           _tcpClient?.Close();
-          _thread = null;
+          Thread = null;
           _tcpClient = null;
           _stream = null;
           if (RecordStream != null) {
