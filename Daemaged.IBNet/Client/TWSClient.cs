@@ -1382,7 +1382,7 @@ namespace Daemaged.IBNet.Client
       if (version >= 20)
       {
         if (_enc.DecodeBool()) {
-          contract.UnderlyingComponent = new IBUnderlyinhComponent {
+          contract.UnderlyingComponent = new IBUnderlyingComponent {
             ContractId = _enc.DecodeInt(),
             Delta = _enc.DecodeDouble(),
             Price = _enc.DecodeDouble()
