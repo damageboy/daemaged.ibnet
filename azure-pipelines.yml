@@ -29,3 +29,9 @@ steps:
 - task: PublishBuildArtifacts@1
   inputs:
     ArtifactName: 'nupkg'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'push'
+    nuGetFeedType: 'external'
+    externalEndpoint: '4508265b-628d-4848-b290-dee0316c76f5'
