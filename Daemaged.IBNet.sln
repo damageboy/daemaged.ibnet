@@ -10,7 +10,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IBNet", "IBNet\IBNet.csproj", "{0495268F-961D-4936-AE53-7BC41922ABAF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Daemaged.IBNet", "Daemaged.IBNet\Daemaged.IBNet.csproj", "{0495268F-961D-4936-AE53-7BC41922ABAF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

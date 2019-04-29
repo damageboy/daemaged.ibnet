@@ -61,7 +61,6 @@ namespace Daemaged.IBNet.Server
     const string IB_HISTORICAL_COMPLETED = "finished";
     readonly Stream _stream;
 
-    byte[] _buffer;
     protected ITWSEncoding _enc;
     Dictionary<int, IBContract> _marketDataSubscriptions;
     Dictionary<int, IBContract> _marketDepthSubscriptions;
@@ -114,7 +113,7 @@ namespace Daemaged.IBNet.Server
       Thread.Start();
     }
 
-    public void ProcessMessages()
+    void ProcessMessages()
     {
       try {
         while (_stillConnected) {
@@ -395,6 +394,7 @@ namespace Daemaged.IBNet.Server
     void OnLogin(TWSClientInfo clientInfo, TWSClientId clientId)
     {
       Server?.OnLogin(this, clientInfo, clientId);
+      Login?.Invoke(this, new TWSServerEventArgs(this));
     }
 
     void OnContractDataRequest(IBContract contract)
@@ -426,9 +426,7 @@ namespace Daemaged.IBNet.Server
 
     void OnMarketDataCancel(int reqId)
     {
-      IBContract contract = null;
-
-      if (_marketDataSubscriptions.TryGetValue(reqId, out contract))
+      if (_marketDataSubscriptions.TryGetValue(reqId, out var contract))
         _marketDataSubscriptions.Remove(reqId);
 
       Server?.OnMarketDataCancel(this, reqId, contract);

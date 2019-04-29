@@ -78,7 +78,6 @@ namespace Daemaged.IBNet.Client
     bool _recordForPlayback;
     Stream _recordStream;
     TWSClientSettings _settings;
-    Stream _stream;
     TcpClient _tcpClient;
     string NUMBER_DECIMAL_SEPARATOR;
     readonly object _socketLock = new object();
@@ -92,7 +91,6 @@ namespace Daemaged.IBNet.Client
     public TWSClient()
     {
       _tcpClient = null;
-      _stream = null;
       Thread = null;
       Status = TWSClientStatus.Unknown;
       _nextValidId = 0;
@@ -219,7 +217,7 @@ namespace Daemaged.IBNet.Client
           _clientId = clientId;
           OnStatusChanged(Status = TWSClientStatus.Connected);
         }
-        catch (Exception e) {
+        catch {
           Disconnect();
           throw;
         }
@@ -239,7 +237,6 @@ namespace Daemaged.IBNet.Client
           _tcpClient?.Close();
           Thread = null;
           _tcpClient = null;
-          _stream = null;
           if (RecordStream != null) {
             RecordStream.Flush();
             RecordStream.Close();
@@ -488,10 +485,9 @@ namespace Daemaged.IBNet.Client
     protected virtual void OnError(int reqId, TWSError error, string extraMessage = null)
     {
       if (Error != null) {
-        TWSMarketDataSnapshot snapshot;
         IBContract contract = null;
 
-        if (_marketDataRecords.TryGetValue(reqId, out snapshot))
+        if (_marketDataRecords.TryGetValue(reqId, out var snapshot))
           contract = snapshot.Contract;
 
         Error(this, new TWSClientErrorEventArgs(this) {
@@ -503,8 +499,7 @@ namespace Daemaged.IBNet.Client
       }
 
       if (OrderChanged != null) {
-        OrderRecord or;
-        if (_orderRecords.TryGetValue(reqId, out or)) {
+        if (_orderRecords.TryGetValue(reqId, out var or)) {
           OrderChanged(this, new TWSOrderChangedEventArgs(this, or) {
             ChangeType = IBOrderChangeType.Error,
             Error = error,
@@ -684,8 +679,7 @@ namespace Daemaged.IBNet.Client
         UnderlyingPrice = underlyingPrice,
       });
 
-      TWSMarketDataSnapshot record;
-      if (!_marketDataRecords.TryGetValue(reqId, out record)) {
+      if (!_marketDataRecords.TryGetValue(reqId, out var record)) {
         OnError($"OnTickPrice: Error request id {reqId}");
         return;
       }
@@ -771,8 +765,7 @@ namespace Daemaged.IBNet.Client
         Value    = value,
       });
 
-      TWSMarketDataSnapshot record;
-      if (!_marketDataRecords.TryGetValue(reqId, out record)) {
+      if (!_marketDataRecords.TryGetValue(reqId, out var record)) {
         OnError($"OnTickPrice: Error request id {reqId}");
         return;
       }
@@ -1021,8 +1014,7 @@ namespace Daemaged.IBNet.Client
       var reqId = _enc.DecodeInt();
 
         ProgressiveTaskCompletionSource<object> completion = null;
-        IFaultable tmp;
-        if (_asyncCalls.TryGetValue(reqId, out tmp)) {
+        if (_asyncCalls.TryGetValue(reqId, out var tmp)) {
           completion = (ProgressiveTaskCompletionSource<object>) tmp;
           // Just signal the async version that the subscription is OK for sure
           completion.SetResult(null);
@@ -1046,8 +1038,7 @@ namespace Daemaged.IBNet.Client
       var reqId = _enc.DecodeInt();
 
       ProgressiveTaskCompletionSource<object> completion = null;
-      IFaultable tmp;
-      if (_asyncCalls.TryGetValue(reqId, out tmp)) {
+      if (_asyncCalls.TryGetValue(reqId, out var tmp)) {
         completion = (ProgressiveTaskCompletionSource<object>)tmp;
         // Just signal the async version that the subscription is OK for sure
         completion.SetResult(null);
@@ -1095,8 +1086,7 @@ namespace Daemaged.IBNet.Client
       var reqId = _enc.DecodeInt();
 
       ProgressiveTaskCompletionSource<object> completion = null;
-      IFaultable tmp;
-      if (_asyncCalls.TryGetValue(reqId, out tmp))
+      if (_asyncCalls.TryGetValue(reqId, out var tmp))
       {
         completion = (ProgressiveTaskCompletionSource<object>)tmp;
         // Just signal the async version that the subscription is OK for sure
@@ -1115,8 +1105,7 @@ namespace Daemaged.IBNet.Client
       var reqId = _enc.DecodeInt();
 
       ProgressiveTaskCompletionSource<object> completion = null;
-      IFaultable tmp;
-      if (_asyncCalls.TryGetValue(reqId, out tmp))
+      if (_asyncCalls.TryGetValue(reqId, out var tmp))
       {
         completion = (ProgressiveTaskCompletionSource<object>)tmp;
         // Just signal the async version that the subscription is OK for sure
@@ -1199,7 +1188,9 @@ namespace Daemaged.IBNet.Client
       if (version >= 4) {
         order.PermId = _enc.DecodeInt();
         if (version < 18)
+#pragma warning disable 612
           order.IgnoreRth = _enc.DecodeInt() == 1;
+#pragma warning restore 612
         else
           order.OutsideRth = _enc.DecodeInt() == 1;
 
@@ -1211,7 +1202,9 @@ namespace Daemaged.IBNet.Client
         order.GoodAfterTime = _enc.DecodeString();
 
       if (version >= 6)
+#pragma warning disable 612
         order.SharesAllocation = _enc.DecodeString();
+#pragma warning restore 612
 
       if (version >= 7) {
         order.FaGroup = _enc.DecodeString();
@@ -1242,7 +1235,9 @@ namespace Daemaged.IBNet.Client
         order.StockRangeUpper = _enc.DecodeDouble();
         order.DisplaySize = _enc.DecodeInt();
         if (version < 18)
+#pragma warning disable 612
           order.RthOnly = _enc.DecodeBool();
+#pragma warning restore 612
         order.BlockOrder = _enc.DecodeBool();
         order.SweepToFill = _enc.DecodeBool();
         order.AllOrNone = _enc.DecodeBool();
@@ -1503,8 +1498,7 @@ namespace Daemaged.IBNet.Client
         var reqId = -1;
         if (version >= 3)
           reqId = _enc.DecodeInt();
-        IFaultable tmp;
-        if (_asyncCalls.TryGetValue(reqId, out tmp))
+        if (_asyncCalls.TryGetValue(reqId, out var tmp))
           completion = (ProgressiveTaskCompletionSource<List<IBContractDetails>>)tmp;
         var contractDetails = new IBContractDetails {
           Summary = {
@@ -1913,8 +1907,7 @@ namespace Daemaged.IBNet.Client
       {
         var version = _enc.DecodeInt();
         var reqId = _enc.DecodeInt();
-        IFaultable tmp;
-        if (_asyncCalls.TryGetValue(reqId, out tmp))
+        if (_asyncCalls.TryGetValue(reqId, out var tmp))
           completion = (ProgressiveTaskCompletionSource<List<IBContractDetails>>) tmp;
 
         if (completion != null)
@@ -2060,7 +2053,7 @@ namespace Daemaged.IBNet.Client
         case ClientMessage.DeltaNuetralValidation: ProcessDeltaNeutralValidation(); break;
         case ClientMessage.TickSnapshotEnd:        ProcessTickSnapshotEnd();        break;
         case ClientMessage.MarketDataType:         ProcessMarketDataType();         break;
-        case ClientMessage.CommissionReport:       ProcessCommissionReport();       break;;
+        case ClientMessage.CommissionReport:       ProcessCommissionReport();       break;
         default:
           return false;
       }
@@ -2728,7 +2721,7 @@ namespace Daemaged.IBNet.Client
 
           return reqId;
         }
-        catch (Exception e) {
+        catch {
           Disconnect();
           throw;
         }
@@ -3186,7 +3179,7 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(useRTH);
 
           _enc.EndEncodeMessage();
-        } catch (Exception e) {
+        } catch {
           Disconnect();
           throw;
         }
@@ -3275,7 +3268,7 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(numIds);
 
           _enc.EndEncodeMessage();
-        } catch (Exception e) {
+        } catch {
           Disconnect();
           throw;
         }
@@ -3299,7 +3292,7 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(reqVersion);
 
           _enc.EndEncodeMessage();
-        } catch (Exception) {
+        } catch {
           Disconnect();
           throw;
         }
@@ -3329,7 +3322,7 @@ namespace Daemaged.IBNet.Client
           }
 
           _enc.EndEncodeMessage();
-        } catch (Exception) {
+        } catch {
           Disconnect();
           throw;
         }
@@ -3524,7 +3517,7 @@ namespace Daemaged.IBNet.Client
           _enc.Encode(reqVersion);
 
           _enc.EndEncodeMessage();
-        } catch (Exception e) {
+        } catch {
           Disconnect();
           throw;
         }
@@ -3545,7 +3538,7 @@ namespace Daemaged.IBNet.Client
           s = File.Open(name, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read);
           break;
         }
-        catch (IOException e) {
+        catch (IOException) {
           count++;
         }
       }

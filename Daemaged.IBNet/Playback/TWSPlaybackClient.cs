@@ -60,14 +60,9 @@ namespace Daemaged.IBNet.Playback
     Mutex _clientMutex;
     Thread _clientThread;
     bool _doWork;
-    int _lastMsgSize;
     DateTime _lastTimeStamp;
-    bool _loginCompleted;
     TWSServerClientHandler _loopbackServer;
     DateTime _nextTimeStamp;
-    int _numMessages;
-    long _position;
-    BinaryReader _reader;
     Mutex _serverMutex;
     Thread _serverThread;
 
@@ -84,8 +79,6 @@ namespace Daemaged.IBNet.Playback
 
     public TWSPlaybackClient()
     {
-      _position = 0;
-      _numMessages = 0;
       _lastTimeStamp = DateTime.MinValue;
       _nextTimeStamp = DateTime.MinValue;
     }
@@ -154,7 +147,6 @@ namespace Daemaged.IBNet.Playback
 
     void LoopbackServer_Login(object sender, TWSServerEventArgs e)
     {
-      _loginCompleted = true;
     }
 
     void LoopbackServer_MarketDataRequest(object sender, TWSMarketDataRequestEventArgs e)
@@ -179,7 +171,7 @@ namespace Daemaged.IBNet.Playback
       while (_doWork) {
         ProcessSingleMessage();
       }
-
+/*
       var msg = ReadLogMetaData();
       switch (msg) {
         case IBPlaybackMessage.Receive:
@@ -193,8 +185,10 @@ namespace Daemaged.IBNet.Playback
           _loopbackServer.ProcessSingleMessage();
           break;
       }
+      */
     }
 
+    /*
     IBPlaybackMessage ReadLogMetaData()
     {
       var msg = (IBPlaybackMessage) _reader.ReadUInt32();
@@ -204,5 +198,6 @@ namespace Daemaged.IBNet.Playback
       _position = _logStream.Position;
       return msg;
     }
+    */
   }
 }

@@ -117,7 +117,7 @@ namespace Daemaged.IBNet.Server
                                           int numRows)
       : base(clientState, reqId, contract)
     {
-      numRows = numRows;
+      NumRows = numRows;
     }
 
     public int NumRows { get; private set; }

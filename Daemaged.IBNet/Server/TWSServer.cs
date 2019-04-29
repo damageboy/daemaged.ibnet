@@ -154,7 +154,7 @@ namespace Daemaged.IBNet.Server
 
     public virtual void OnMarketDepthCancel(TWSServerClientHandler client, int reqId, IBContract contract)
     {
-      MarketDataCancel?.Invoke(this, new TWSMarketDataCancelEventArgs(client, reqId, contract));
+      MarketDepthCancel?.Invoke(this, new TWSMarketDataCancelEventArgs(client, reqId, contract));
     }
 
     public virtual void OnContractDetailsRequest(TWSServerClientHandler client, IBContract contract) {}

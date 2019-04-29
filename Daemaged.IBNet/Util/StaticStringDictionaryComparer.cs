@@ -34,8 +34,7 @@ namespace IBNet.Util
 
     public static IComparer<string> For(int startIndex)
     {
-      IComparer<string> comparer;
-      if (!_comparers.TryGetValue(startIndex, out comparer))
+      if (!_comparers.TryGetValue(startIndex, out var comparer))
       {
         comparer = new StaticStringDictionaryComparer(startIndex);
         _comparers.Add(startIndex, comparer);
