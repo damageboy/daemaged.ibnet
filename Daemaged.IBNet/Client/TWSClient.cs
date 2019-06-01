@@ -804,7 +804,8 @@ namespace Daemaged.IBNet.Client
       OpenOrder?.Invoke(this, new TWSOpenOrderEventArgs(this) {
         OrderId  = orderId,
         Order    = order,
-        Contract = contract
+        Contract = contract,
+        OrderState = orderState,
       });
 
       // TODO: remove this callback from here!

@@ -317,6 +317,7 @@ namespace Daemaged.IBNet.Client
 
     public IBOrder Order { get; internal set; }
     public IBContract Contract { get; internal set; }
+    public IBOrderState OrderState { get; internal set; }
   }
 
   public class TWSContractDetailsEventArgs : TWSClientEventArgs
