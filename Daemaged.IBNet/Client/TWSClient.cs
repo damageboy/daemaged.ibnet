@@ -974,7 +974,7 @@ namespace Daemaged.IBNet.Client
     {
     }
 
-    void OnDeltaNuetralValidation(int reqId, UnderliyingComponent underComp)
+    void OnDeltaNeutralValidation(int reqId, IBUnderlyingComponent underComp)
     {
     }
 
@@ -1946,13 +1946,14 @@ namespace Daemaged.IBNet.Client
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
 
-      var underComp = new UnderliyingComponent {
-        ConId = _enc.DecodeInt(),
+      var underComp = new IBUnderlyingComponent
+      {
+        ContractId = _enc.DecodeInt(),
         Delta = _enc.DecodeDouble(),
         Price = _enc.DecodeDouble()
       };
 
-      OnDeltaNuetralValidation(reqId, underComp);
+      OnDeltaNeutralValidation(reqId, underComp);
     }
 
     void ProcessTickSnapshotEnd()
