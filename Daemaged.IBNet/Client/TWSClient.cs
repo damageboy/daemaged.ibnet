@@ -2051,7 +2051,7 @@ namespace Daemaged.IBNet.Client
         case ClientMessage.OpenOrderEnd:           ProcessOpenOrderEnd();           break;
         case ClientMessage.AccountDownloadEnd:     ProcessAccountDownloadEnd();     break;
         case ClientMessage.ExecutionDataEnd:       ProcessExecutionDataEnd();       break;
-        case ClientMessage.DeltaNuetralValidation: ProcessDeltaNeutralValidation(); break;
+        case ClientMessage.DeltaNeutralValidation: ProcessDeltaNeutralValidation(); break;
         case ClientMessage.TickSnapshotEnd:        ProcessTickSnapshotEnd();        break;
         case ClientMessage.MarketDataType:         ProcessMarketDataType();         break;
         case ClientMessage.CommissionReport:       ProcessCommissionReport();       break;
