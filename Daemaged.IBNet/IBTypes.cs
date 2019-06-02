@@ -427,7 +427,7 @@ namespace Daemaged.IBNet
 
     public int ContractId { get; set; }
 
-    public IBUnderlyinhComponent UnderlyingComponent { get; set; }
+    public IBUnderlyingComponent UnderlyingComponent { get; set; }
 
     public string SecurityId { get; set; }
 
@@ -808,7 +808,7 @@ namespace Daemaged.IBNet
   /// Underlying Component Class
   /// </summary>
   [Serializable]
-  public class IBUnderlyinhComponent
+  public class IBUnderlyingComponent
   {   
     #region Public Properties
 

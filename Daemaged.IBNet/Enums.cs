@@ -1193,7 +1193,7 @@ namespace Daemaged.IBNet
     /// <summary>
     /// Received after a delta neutral validation
     /// </summary>
-    DeltaNuetralValidation = 56,
+    DeltaNeutralValidation = 56,
 
     /// <summary>
     /// End of Tick Snapshot message

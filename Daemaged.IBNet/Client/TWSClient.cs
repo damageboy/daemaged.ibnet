@@ -974,7 +974,7 @@ namespace Daemaged.IBNet.Client
     {
     }
 
-    void OnDeltaNuetralValidation(int reqId, UnderliyingComponent underComp)
+    void OnDeltaNeutralValidation(int reqId, IBUnderlyingComponent underComp)
     {
     }
 
@@ -1382,7 +1382,7 @@ namespace Daemaged.IBNet.Client
       if (version >= 20)
       {
         if (_enc.DecodeBool()) {
-          contract.UnderlyingComponent = new IBUnderlyinhComponent {
+          contract.UnderlyingComponent = new IBUnderlyingComponent {
             ContractId = _enc.DecodeInt(),
             Delta = _enc.DecodeDouble(),
             Price = _enc.DecodeDouble()
@@ -1946,13 +1946,14 @@ namespace Daemaged.IBNet.Client
       var version = _enc.DecodeInt();
       var reqId = _enc.DecodeInt();
 
-      var underComp = new UnderliyingComponent {
-        ConId = _enc.DecodeInt(),
+      var underComp = new IBUnderlyingComponent
+      {
+        ContractId = _enc.DecodeInt(),
         Delta = _enc.DecodeDouble(),
         Price = _enc.DecodeDouble()
       };
 
-      OnDeltaNuetralValidation(reqId, underComp);
+      OnDeltaNeutralValidation(reqId, underComp);
     }
 
     void ProcessTickSnapshotEnd()
@@ -2050,7 +2051,7 @@ namespace Daemaged.IBNet.Client
         case ClientMessage.OpenOrderEnd:           ProcessOpenOrderEnd();           break;
         case ClientMessage.AccountDownloadEnd:     ProcessAccountDownloadEnd();     break;
         case ClientMessage.ExecutionDataEnd:       ProcessExecutionDataEnd();       break;
-        case ClientMessage.DeltaNuetralValidation: ProcessDeltaNeutralValidation(); break;
+        case ClientMessage.DeltaNeutralValidation: ProcessDeltaNeutralValidation(); break;
         case ClientMessage.TickSnapshotEnd:        ProcessTickSnapshotEnd();        break;
         case ClientMessage.MarketDataType:         ProcessMarketDataType();         break;
         case ClientMessage.CommissionReport:       ProcessCommissionReport();       break;
